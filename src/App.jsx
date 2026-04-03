@@ -623,25 +623,22 @@ function FacultyDashboard({ onLogout }) {
   };
 
   // Faculty starts the current quarter (enables student timers)
-  // BroadcastChannel for same-browser tab sync (faculty ↔ student)
-  const channelRef = useRef(null);
-  useEffect(() => {
-    channelRef.current = new BroadcastChannel("pricing-sim-" + gameState.gameId);
-    return () => { if (channelRef.current) channelRef.current.close(); };
-  }, [gameState.gameId]);
+  // localStorage-based sync for same-browser tab communication
+  // Faculty writes game state to localStorage, student polls it
 
   function startCurrentQuarter() {
     console.log("Faculty: Starting quarter", gameState.currentQuarter, "for game", gameState.gameId);
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
-    // Broadcast to student tabs in same browser
-    if (channelRef.current) {
-      channelRef.current.postMessage({
+    // Write to localStorage so student tabs can detect it
+    try {
+      localStorage.setItem("pricing-sim-" + gameState.gameId, JSON.stringify({
         type: "QUARTER_STARTED",
         quarter: gameState.currentQuarter,
         aip: aipInput,
         gameId: gameState.gameId,
-      });
-    }
+        timestamp: Date.now(),
+      }));
+    } catch(e) { console.error("localStorage write error:", e); }
     // Also sync to Firebase for cross-device
     if (FIREBASE_ENABLED) {
       fbStartQuarter(gameState.gameId, aipInput)
@@ -665,16 +662,17 @@ function FacultyDashboard({ onLogout }) {
         updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
       }
       const isFinished = qNum >= 12;
-      // Broadcast to student tabs: quarter processed, waiting for next start
-      if (channelRef.current) {
-        channelRef.current.postMessage({
+      // Write to localStorage so student tabs detect the processing
+      try {
+        localStorage.setItem("pricing-sim-" + prev.gameId, JSON.stringify({
           type: "QUARTER_PROCESSED",
           quarter: qNum,
           nextQuarter: qNum + 1,
           gameId: prev.gameId,
           isFinished,
-        });
-      }
+          timestamp: Date.now(),
+        }));
+      } catch(e) {}
       // Sync to Firebase
       if (FIREBASE_ENABLED) {
         processQuarterResults(prev.gameId, updatedTeams, qNum + 1, newAipHistory, isFinished);
@@ -1454,22 +1452,45 @@ function StudentDashboard({ session, onLogout }) {
   }, [currentQuarter]);
 
   // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
-  // The timer is only started via unlockNextQuarter() (triggered by faculty or Firebase or BroadcastChannel).
+  // The timer is only started via unlockNextQuarter() (triggered by faculty via localStorage, Firebase, or manual button).
 
-  // BroadcastChannel: Listen for faculty actions from another tab in the same browser
+  // localStorage polling + storage event: Listen for faculty actions from another tab
+  const lastSeenTimestamp = useRef(0);
   useEffect(() => {
     if (gamePhase !== "playing" || !session.gameCode) return;
-    const channel = new BroadcastChannel("pricing-sim-" + session.gameCode);
-    channel.onmessage = (event) => {
-      const msg = event.data;
-      console.log("Student: BroadcastChannel message received:", msg);
-      if (msg.type === "QUARTER_STARTED" && msg.gameId === session.gameCode) {
-        console.log("Student: Faculty started quarter via BroadcastChannel! Starting timer.");
-        if (msg.aip != null) setAip(msg.aip);
-        startTimer();
-      }
+    const storageKey = "pricing-sim-" + session.gameCode;
+    
+    const checkLocalStorage = () => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const msg = JSON.parse(raw);
+        if (msg.timestamp && msg.timestamp > lastSeenTimestamp.current) {
+          lastSeenTimestamp.current = msg.timestamp;
+          console.log("Student: localStorage message detected:", msg);
+          if (msg.type === "QUARTER_STARTED" && !quarterReadyRef.current && !timerRunningRef.current) {
+            console.log("Student: Faculty started quarter! Starting timer.");
+            if (msg.aip != null) setAip(msg.aip);
+            startTimer();
+          }
+        }
+      } catch(e) {}
     };
-    return () => channel.close();
+
+    // Check immediately
+    checkLocalStorage();
+    // Poll every 1 second
+    const interval = setInterval(checkLocalStorage, 1000);
+    // Also listen for the storage event (fires when another tab writes)
+    const handleStorage = (e) => {
+      if (e.key === storageKey) checkLocalStorage();
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [gamePhase, session.gameCode]);
 
   // Listen to Firebase for faculty starting quarters and AIP updates
