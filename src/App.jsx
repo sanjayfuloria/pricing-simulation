@@ -360,14 +360,8 @@ function LoginScreen({ onLogin }) {
     if (code.length !== 8) { setError("Please enter a valid 8-character simulation code"); return; }
     setError("");
     
-    // Check Firebase REST API directly (more reliable than SDK)
+    // Try to fetch team list from Firebase (non-blocking)
     try {
-      const res = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/meta.json");
-      if (res.ok) {
-        const meta = await res.json();
-        if (!meta) { setError("Game not found. Check your code and try again."); return; }
-      }
-      // Fetch team list from Firebase
       const teamsRes = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/teams.json");
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json();
@@ -377,8 +371,7 @@ function LoginScreen({ onLogin }) {
         }
       }
     } catch (e) {
-      // If Firebase check fails, let student through anyway (offline mode)
-      console.log("Firebase check failed, proceeding in offline mode:", e.message);
+      // Proceed even if Firebase is unreachable
     }
     setStudentStep("teamSelect");
   };
