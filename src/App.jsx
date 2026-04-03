@@ -1453,6 +1453,7 @@ function StudentDashboard({ session, onLogout }) {
     return qInPhase === 1 ? 360 : 180; // 6 min or 3 min in seconds
   };
 
+  const startTimerRef = useRef(null);
   const startTimer = useCallback(() => {
     const duration = getTimerDuration(currentQuarter);
     setTimerSeconds(duration);
@@ -1470,11 +1471,11 @@ function StudentDashboard({ session, onLogout }) {
       });
     }, 1000);
   }, [currentQuarter]);
+  startTimerRef.current = startTimer;
 
   // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
 
-  // SYNC: Poll Firebase REST API directly every 2 seconds (most reliable approach)
-  // Also check localStorage as fallback for same-browser tabs
+  // SYNC: Poll Firebase REST API directly every 2 seconds
   const quarterReadyRef = useRef(quarterReady);
   const timerRunningRef = useRef(timerRunning);
   quarterReadyRef.current = quarterReady;
@@ -1490,7 +1491,9 @@ function StudentDashboard({ session, onLogout }) {
     let cancelled = false;
 
     const checkForQuarterStart = async () => {
-      if (cancelled || quarterReadyRef.current || timerRunningRef.current) return;
+      if (cancelled) return;
+      // Skip if already ready or timer running
+      if (quarterReadyRef.current || timerRunningRef.current) return;
 
       // Check Firebase REST API directly
       try {
@@ -1499,13 +1502,12 @@ function StudentDashboard({ session, onLogout }) {
           const meta = await res.json();
           if (meta && meta.quarterStarted) {
             if (meta.aipInput != null) setAip(meta.aipInput);
-            startTimer();
+            // Use the ref to get the latest startTimer function
+            if (startTimerRef.current) startTimerRef.current();
             return;
           }
         }
-      } catch (e) {
-        // Firebase fetch failed, try localStorage
-      }
+      } catch (e) {}
 
       // Fallback: Check localStorage (same-browser)
       try {
@@ -1514,7 +1516,7 @@ function StudentDashboard({ session, onLogout }) {
           const msg = JSON.parse(raw);
           if (msg.type === "QUARTER_STARTED") {
             if (msg.aip != null) setAip(msg.aip);
-            startTimer();
+            if (startTimerRef.current) startTimerRef.current();
             return;
           }
         }
