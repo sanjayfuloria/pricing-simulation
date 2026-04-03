@@ -19,13 +19,13 @@ import { getDatabase, ref, set, get, update, onValue, off, push } from "firebase
 // 4. Copy the firebaseConfig object here
 // 5. Enable Realtime Database (test mode for now)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCAhsy4XZECKJoVtPXePHtaCNoj-3J_R2o",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "pricing-simulation-4ceee.firebaseapp.com",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "pricing-simulation-4ceee",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "pricing-simulation-4ceee.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "386476392838",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:386476392838:web:54a797ad9a2a80bbd12c07",
 };
 
 let app = null;
