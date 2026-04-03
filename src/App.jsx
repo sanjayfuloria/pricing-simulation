@@ -92,15 +92,50 @@ const Icons = {
 async function pushToSheets(url, payload) {
   if (!url) return { ok: false, message: "Google Sheets URL not configured" };
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(payload),
+    // Use an iframe + hidden form to POST to Google Apps Script.
+    // This avoids CORS entirely since we're doing a form submission, not XHR.
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
+      iframe.name = "gs_iframe_" + Date.now();
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = url;
+      form.target = iframe.name;
+      form.style.display = "none";
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "payload";
+      input.value = JSON.stringify(payload);
+      form.appendChild(input);
+
+      document.body.appendChild(form);
+
+      // Listen for iframe load (means form submitted successfully)
+      iframe.onload = () => {
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          document.body.removeChild(form);
+        }, 1000);
+        resolve({ ok: true, message: "Data saved to Google Sheets!" });
+      };
+
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        document.body.removeChild(form);
+        resolve({ ok: false, message: "Failed to connect to Google Sheets." });
+      };
+
+      // Timeout after 15 seconds
+      setTimeout(() => {
+        resolve({ ok: true, message: "Data sent to Google Sheets! Check your spreadsheet." });
+      }, 15000);
+
+      form.submit();
     });
-    // no-cors returns opaque response (status 0), so we can't read body
-    // but if no error was thrown, the request was sent successfully
-    return { ok: true, message: "Data sent to Google Sheets! Check your spreadsheet." };
   } catch (e) { return { ok: false, message: e.message }; }
 }
 

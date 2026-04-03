@@ -3,16 +3,24 @@
  * 
  * SETUP:
  * 1. Create a new Google Sheet
- * 2. Go to Extensions → Apps Script
- * 3. Delete any existing code and paste this entire file
- * 4. Click Deploy → New deployment → Web app
- *    - Execute as: Me | Who has access: Anyone
- * 5. Copy the Web App URL into the simulation app
+ * 2. Extensions → Apps Script → paste this code → Save
+ * 3. Deploy → New deployment → Web app
+ *    Execute as: Me | Who has access: Anyone
+ * 4. Copy Web App URL into the simulation app
  */
 
 function doPost(e) {
   try {
-    var raw = e.postData.contents;
+    var raw;
+    // Handle both form-encoded POST (payload field) and raw JSON POST
+    if (e.parameter && e.parameter.payload) {
+      raw = e.parameter.payload;
+    } else if (e.postData && e.postData.contents) {
+      raw = e.postData.contents;
+    } else {
+      throw new Error("No data received");
+    }
+    
     var data = JSON.parse(raw);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
