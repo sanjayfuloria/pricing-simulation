@@ -1,16 +1,23 @@
 /**
- * Google Apps Script — Pricing Simulation Data Receiver (v3)
+ * Google Apps Script — Pricing Simulation Data Receiver (v4)
  * 
- * Handles: Single team, multi-team, scores, SD penalties, individual/team type
+ * Creates 5 sheets:
+ *   "Games"       — one row per game push with metadata & top scores
+ *   "Teams"       — one row per team/individual with scores, strategy, members
+ *   "Quarters"    — one row per quarter per team with full detail
+ *   "AIP History" — one row per quarter with AIP values
+ *   "Debug"       — error logging (auto-created on errors)
  * 
  * SETUP:
- * 1. Create a new Google Sheet
- * 2. Extensions → Apps Script → paste this code → Save
+ * 1. Create a new Google Sheet (name it anything)
+ * 2. Extensions → Apps Script → delete default code → paste this → Save
  * 3. Deploy → New deployment → Web app
  *    Execute as: Me | Who has access: Anyone
- * 4. Copy Web App URL into the simulation app
+ * 4. Authorize when prompted
+ * 5. Copy the Web App URL into the simulation app
  * 
- * After code changes: Deploy → Manage deployments → Edit → Version: New version → Deploy
+ * IMPORTANT: After ANY code change:
+ *   Deploy → Manage deployments → pencil icon → Version: "New version" → Deploy
  */
 
 function doPost(e) {
@@ -21,44 +28,99 @@ function doPost(e) {
     } else if (e.postData && e.postData.contents) {
       raw = e.postData.contents;
     } else {
-      throw new Error("No data received");
+      throw new Error("No data received. Keys: " + Object.keys(e || {}).join(","));
     }
     
     var data = JSON.parse(raw);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
     if (data.teams) {
+      saveGameSummary(ss, data);
+      saveAIPHistory(ss, data);
       saveMultiTeamData(ss, data);
     } else {
       saveSingleTeamData(ss, data);
     }
 
     return ContentService
-      .createTextOutput(JSON.stringify({status:"ok",message:"Data saved successfully!"}))
+      .createTextOutput(JSON.stringify({status:"ok", message:"Data saved successfully!"}))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    try {
-      var debugSheet = getOrCreateSheet(SpreadsheetApp.getActiveSpreadsheet(), "Debug",
-        ["Timestamp", "Error", "Raw Data"]);
-      var rawSnippet = "";
-      try { rawSnippet = (e.postData ? e.postData.contents : JSON.stringify(e.parameter || {})).substring(0, 500); } catch(x) {}
-      debugSheet.appendRow([new Date().toISOString(), err.toString(), rawSnippet]);
-    } catch(x) {}
-    
+    logError(err, e);
     return ContentService
-      .createTextOutput(JSON.stringify({status:"error",message:err.toString()}))
+      .createTextOutput(JSON.stringify({status:"error", message:err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
+function saveGameSummary(ss, data) {
+  var sheet = getOrCreateSheet(ss, "Games", [
+    "Timestamp", "Game ID", "Total Teams", "Total Individuals",
+    "Quarters Played", "SD Penalty Enabled",
+    "Top Team", "Top Score", "Top Profit",
+    "Avg Revenue", "Avg Profit"
+  ]);
+
+  var teams = data.teams || [];
+  var teamCount = teams.filter(function(t) { return !t.isIndividual; }).length;
+  var indCount = teams.filter(function(t) { return t.isIndividual; }).length;
+  var maxQ = 0;
+  teams.forEach(function(t) {
+    var ql = (t.quarters || []).length;
+    if (ql > maxQ) maxQ = ql;
+  });
+
+  var topTeam = "", topScore = 0, topProfit = 0;
+  var totalRev = 0, totalProf = 0;
+  teams.forEach(function(t) {
+    if ((t.score || 0) > topScore) {
+      topScore = t.score || 0;
+      topTeam = t.name || "";
+      topProfit = t.totProfit || 0;
+    }
+    totalRev += (t.totRevenue || 0);
+    totalProf += (t.totProfit || 0);
+  });
+  var avgRev = teams.length > 0 ? Math.round(totalRev / teams.length) : 0;
+  var avgProf = teams.length > 0 ? Math.round(totalProf / teams.length) : 0;
+
+  sheet.appendRow([
+    data.timestamp || new Date().toISOString(),
+    data.gameId || "",
+    teamCount, indCount, maxQ,
+    data.sdPenaltyEnabled ? "Yes" : "No",
+    topTeam, topScore, topProfit, avgRev, avgProf
+  ]);
+}
+
+function saveAIPHistory(ss, data) {
+  var aipHistory = data.aipHistory || [];
+  if (aipHistory.length === 0) return;
+
+  var sheet = getOrCreateSheet(ss, "AIP History", [
+    "Timestamp", "Game ID", "Quarter", "Phase", "AIP"
+  ]);
+
+  aipHistory.forEach(function(h) {
+    var phase = h.quarter <= 4 ? 1 : h.quarter <= 8 ? 2 : 3;
+    sheet.appendRow([
+      data.timestamp || new Date().toISOString(),
+      data.gameId || "",
+      h.quarter, phase, h.aip
+    ]);
+  });
+}
+
 function saveSingleTeamData(ss, data) {
-  // ── Teams sheet (summary) ──────────────────────────────────
   var teamsSheet = getOrCreateSheet(ss, "Teams", [
-    "Timestamp", "Game ID", "Team/Individual Name", "Type", "Section",
-    "Member 1", "Member 2", "Member 3", "Member 4",
-    "Rank", "Score", "Total Revenue", "Total Profit", "Total Meals Sold",
+    "Timestamp", "Game ID",
+    "Team/Individual Name", "Selected Team ID", "Type", "Section",
+    "Member 1", "Member 2", "Member 3", "Member 4", "Member 5",
+    "Rank", "Score",
+    "Total Revenue", "Total Profit", "Total Meals Sold",
     "Penalties", "Growth %",
-    "Strategy", "Revenue Comments", "Profit Comments"
+    "Generic Strategy", "Year 1 Strategy", "Year 2 Strategy", "Year 3 Strategy",
+    "Revenue Comments", "Profit Comments"
   ]);
 
   var members = data.members || [];
@@ -82,30 +144,36 @@ function saveSingleTeamData(ss, data) {
     data.timestamp || new Date().toISOString(),
     data.gameId || "",
     data.teamName || data.name || "",
+    data.selectedTeamId || "",
     isInd,
     data.section || "",
-    members[0] ? members[0].name : "",
-    members[1] ? members[1].name : "",
-    members[2] ? members[2].name : "",
-    members[3] ? members[3].name : "",
+    getMemberName(members, 0),
+    getMemberName(members, 1),
+    getMemberName(members, 2),
+    getMemberName(members, 3),
+    getMemberName(members, 4),
     data.rank || "",
     data.score || "",
-    totalRevenue,
-    totalProfit,
-    totalSales,
+    totalRevenue, totalProfit, totalSales,
     data.penalties || 0,
     data.growth || 0,
     strategy.generic || "",
+    strategy.year1 || "",
+    strategy.year2 || "",
+    strategy.year3 || "",
     conclusions.revenueComments || conclusions.revenue || "",
     conclusions.profitComments || conclusions.profit || ""
   ]);
 
-  // ── Quarters sheet (detail) ────────────────────────────────
   var qSheet = getOrCreateSheet(ss, "Quarters", [
-    "Timestamp", "Game ID", "Team Name", "Type", "Section",
-    "Quarter", "Phase", "Own Price", "Avg Industry Price",
-    "Promotion Expense", "New Customers", "Retained Customers",
-    "Total Sales", "Revenue", "Profit",
+    "Timestamp", "Game ID",
+    "Team Name", "Type", "Section",
+    "Quarter", "Phase",
+    "Own Price", "Avg Industry Price",
+    "Promotion Expense",
+    "Retention Rate", "Retained Customers",
+    "New Customers", "Total Sales",
+    "Revenue", "Profit",
     "SD Penalty", "Z-Score", "Adjusted Profit",
     "Observations", "Next Quarter Strategy"
   ]);
@@ -116,14 +184,14 @@ function saveSingleTeamData(ss, data) {
       data.timestamp || new Date().toISOString(),
       data.gameId || "",
       data.teamName || data.name || "",
-      isInd,
-      data.section || "",
+      isInd, data.section || "",
       q.quarter, q.phase,
       q.price || q.ownPrice || 0,
       q.avgComp || q.avgCompPrice || 0,
       q.promo || q.promoExpense || 0,
-      q.newCust || q.newCustomers || 0,
+      q.retRate || 0,
       q.retained || q.retainedCustomers || 0,
+      q.newCust || q.newCustomers || 0,
       q.totalSales || 0,
       q.revenue || 0,
       q.profit || 0,
@@ -142,9 +210,18 @@ function saveMultiTeamData(ss, data) {
     var team = teams[t];
     team.timestamp = data.timestamp || new Date().toISOString();
     team.gameId = data.gameId || "";
-    team.teamName = team.name || ("Team " + (t+1));
+    team.teamName = team.name || ("Team " + (t + 1));
     saveSingleTeamData(ss, team);
   }
+}
+
+function getMemberName(members, index) {
+  if (!members || index >= members.length) return "";
+  var m = members[index];
+  if (!m) return "";
+  var name = m.name || "";
+  var enrol = m.enrol || m.enrolment || "";
+  return enrol ? name + " (" + enrol + ")" : name;
 }
 
 function getOrCreateSheet(ss, name, headers) {
@@ -153,12 +230,32 @@ function getOrCreateSheet(ss, name, headers) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    try { sheet.autoResizeColumns(1, headers.length); } catch(e) {}
   }
   return sheet;
 }
 
+function logError(err, e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var debugSheet = getOrCreateSheet(ss, "Debug", ["Timestamp", "Error", "Raw Data (first 500 chars)"]);
+    var rawSnippet = "";
+    try {
+      if (e && e.postData) rawSnippet = e.postData.contents.substring(0, 500);
+      else if (e && e.parameter) rawSnippet = JSON.stringify(e.parameter).substring(0, 500);
+    } catch(x) { rawSnippet = "Could not extract raw data"; }
+    debugSheet.appendRow([new Date().toISOString(), err.toString(), rawSnippet]);
+  } catch(x) {}
+}
+
 function doGet(e) {
   return ContentService
-    .createTextOutput(JSON.stringify({status:"ok",message:"Pricing Simulation API v3 running."}))
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "Pricing Simulation API v4 running.",
+      version: "4.0",
+      sheets: ["Games", "Teams", "Quarters", "AIP History", "Debug"]
+    }))
     .setMimeType(ContentService.MimeType.JSON);
 }
