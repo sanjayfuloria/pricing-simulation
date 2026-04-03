@@ -1452,75 +1452,75 @@ function StudentDashboard({ session, onLogout }) {
   }, [currentQuarter]);
 
   // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
-  // The timer is only started via unlockNextQuarter() (triggered by faculty via localStorage, Firebase, or manual button).
 
-  // localStorage polling + storage event: Listen for faculty actions from another tab
-  const lastSeenTimestamp = useRef(0);
-  const [debugInfo, setDebugInfo] = useState("");
-  useEffect(() => {
-    if (gamePhase !== "playing" || !session.gameCode) return;
-    const storageKey = "pricing-sim-" + session.gameCode;
-    setDebugInfo("Listening on key: " + storageKey);
-    
-    const checkLocalStorage = () => {
-      try {
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) {
-          setDebugInfo(prev => "Key: " + storageKey + " | No data found | " + new Date().toLocaleTimeString());
-          return;
-        }
-        const msg = JSON.parse(raw);
-        setDebugInfo("Found: " + msg.type + " ts=" + msg.timestamp + " lastSeen=" + lastSeenTimestamp.current + " | " + new Date().toLocaleTimeString());
-        if (msg.timestamp && msg.timestamp > lastSeenTimestamp.current) {
-          lastSeenTimestamp.current = msg.timestamp;
-          if (msg.type === "QUARTER_STARTED" && !quarterReadyRef.current && !timerRunningRef.current) {
-            setDebugInfo("STARTING TIMER! AIP=" + msg.aip);
-            if (msg.aip != null) setAip(msg.aip);
-            startTimer();
-          }
-        }
-      } catch(e) { setDebugInfo("Error: " + e.message); }
-    };
-
-    checkLocalStorage();
-    const interval = setInterval(checkLocalStorage, 1000);
-    const handleStorage = (e) => {
-      if (e.key === storageKey) {
-        setDebugInfo("storage event fired for " + storageKey);
-        checkLocalStorage();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [gamePhase, session.gameCode]);
-
-  // Listen to Firebase for faculty starting quarters and AIP updates
+  // SYNC: Poll Firebase REST API directly every 2 seconds (most reliable approach)
+  // Also check localStorage as fallback for same-browser tabs
   const quarterReadyRef = useRef(quarterReady);
   const timerRunningRef = useRef(timerRunning);
   quarterReadyRef.current = quarterReady;
   timerRunningRef.current = timerRunning;
+  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
-    if (!FIREBASE_ENABLED || gamePhase !== "playing" || !session.gameCode) return;
-    console.log("Firebase: Subscribing to game meta for", session.gameCode);
-    const unsub = listenToGameMeta(session.gameCode, (meta) => {
-      console.log("Firebase meta update:", meta);
-      // Faculty started the quarter — unlock and start timer
-      if (meta.quarterStarted && !quarterReadyRef.current && !timerRunningRef.current) {
-        console.log("Firebase: Faculty started quarter! Starting timer.");
-        startTimer();
+    if (gamePhase !== "playing" || !session.gameCode) return;
+    const gameCode = session.gameCode;
+    const firebaseUrl = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + gameCode + "/meta.json";
+    const storageKey = "pricing-sim-" + gameCode;
+    let cancelled = false;
+
+    const checkForQuarterStart = async () => {
+      if (cancelled || quarterReadyRef.current || timerRunningRef.current) return;
+
+      // Method 1: Check Firebase REST API directly
+      try {
+        const res = await fetch(firebaseUrl);
+        if (res.ok) {
+          const meta = await res.json();
+          if (meta && meta.quarterStarted) {
+            setDebugInfo("Firebase: Quarter started! AIP=" + meta.aipInput);
+            if (meta.aipInput != null) setAip(meta.aipInput);
+            startTimer();
+            return;
+          }
+          setDebugInfo("Firebase: quarterStarted=" + (meta?.quarterStarted || false) + " | " + new Date().toLocaleTimeString());
+        } else {
+          setDebugInfo("Firebase: HTTP " + res.status + " | trying localStorage...");
+        }
+      } catch (e) {
+        setDebugInfo("Firebase fetch error: " + e.message + " | trying localStorage...");
       }
-      // Update AIP from faculty
-      if (meta.aipInput != null) {
-        setAip(meta.aipInput);
-      }
-    });
-    return unsub;
-  }, [gamePhase, session.gameCode]); // Only re-subscribe when game phase or code changes
+
+      // Method 2: Check localStorage (same-browser fallback)
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const msg = JSON.parse(raw);
+          if (msg.type === "QUARTER_STARTED") {
+            setDebugInfo("localStorage: Quarter started! AIP=" + msg.aip);
+            if (msg.aip != null) setAip(msg.aip);
+            startTimer();
+            return;
+          }
+        }
+      } catch (e) {}
+    };
+
+    // Check immediately, then every 2 seconds
+    checkForQuarterStart();
+    const interval = setInterval(checkForQuarterStart, 2000);
+
+    // Also listen for storage events (instant when same browser)
+    const handleStorage = (e) => {
+      if (e.key === storageKey) checkForQuarterStart();
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [gamePhase, session.gameCode]);
 
   // Cleanup timer
   useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
