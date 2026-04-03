@@ -54,7 +54,7 @@ function doPost(e) {
 function saveSingleTeamData(ss, data) {
   // ── Teams sheet (summary) ──────────────────────────────────
   var teamsSheet = getOrCreateSheet(ss, "Teams", [
-    "Timestamp", "Team/Individual Name", "Type", "Section",
+    "Timestamp", "Game ID", "Team/Individual Name", "Type", "Section",
     "Member 1", "Member 2", "Member 3", "Member 4",
     "Rank", "Score", "Total Revenue", "Total Profit", "Total Meals Sold",
     "Penalties", "Growth %",
@@ -80,6 +80,7 @@ function saveSingleTeamData(ss, data) {
 
   teamsSheet.appendRow([
     data.timestamp || new Date().toISOString(),
+    data.gameId || "",
     data.teamName || data.name || "",
     isInd,
     data.section || "",
@@ -101,7 +102,7 @@ function saveSingleTeamData(ss, data) {
 
   // ── Quarters sheet (detail) ────────────────────────────────
   var qSheet = getOrCreateSheet(ss, "Quarters", [
-    "Timestamp", "Team Name", "Type", "Section",
+    "Timestamp", "Game ID", "Team Name", "Type", "Section",
     "Quarter", "Phase", "Own Price", "Avg Industry Price",
     "Promotion Expense", "New Customers", "Retained Customers",
     "Total Sales", "Revenue", "Profit",
@@ -113,6 +114,7 @@ function saveSingleTeamData(ss, data) {
     var q = quarters[j];
     qSheet.appendRow([
       data.timestamp || new Date().toISOString(),
+      data.gameId || "",
       data.teamName || data.name || "",
       isInd,
       data.section || "",
@@ -139,6 +141,7 @@ function saveMultiTeamData(ss, data) {
   for (var t = 0; t < teams.length; t++) {
     var team = teams[t];
     team.timestamp = data.timestamp || new Date().toISOString();
+    team.gameId = data.gameId || "";
     team.teamName = team.name || ("Team " + (t+1));
     saveSingleTeamData(ss, team);
   }

@@ -449,19 +449,31 @@ function LoginScreen({ onLogin }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // FACULTY DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
+// Generate unique Game ID: GAME-YYYYMMDD-XXXX
+function generateGameId() {
+  const d = new Date();
+  const date = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `GAME-${date}-${rand}`;
+}
+
 function FacultyDashboard({ onLogout }) {
   const [tab, setTab] = useState("control");
   const [gameState, setGameState] = useState({
-    currentQuarter: 1, status: "waiting", aipHistory: [],
-    teams: generateDemoTeams(), sheetsUrl: "", gameCode: "GAME-2026",
+    currentQuarter: 0, // 0 means game not started yet
+    status: "setup", // "setup" | "active" | "waiting" | "finished"
+    aipHistory: [],
+    teams: generateDemoTeams(), sheetsUrl: "",
+    gameId: generateGameId(),
     sdPenaltyEnabled: true, allowIndividualPlay: true,
+    quarterStarted: false, // true when faculty has started the current quarter
   });
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
   const [rosterStatus, setRosterStatus] = useState(null);
   const fileInputRef = useRef(null);
 
-  const currentPhase = getPhase(gameState.currentQuarter);
+  const currentPhase = getPhase(Math.max(gameState.currentQuarter, 1));
   const cfg = PHASE_CONFIG[currentPhase];
 
   const handleRosterUpload = async (e) => {
@@ -483,21 +495,42 @@ function FacultyDashboard({ onLogout }) {
     e.target.value = "";
   };
 
-  function advanceQuarter() {
+  // Start a brand new game (generates new ID, resets everything)
+  function startNewGame() {
+    setGameState(prev => ({
+      ...prev,
+      currentQuarter: 1,
+      status: "active",
+      aipHistory: [],
+      teams: prev.teams.map(t => ({ ...t, quarters: [], pendingPrice: null, pendingPromo: null, submitted: false })),
+      gameId: generateGameId(),
+      quarterStarted: true, // First quarter starts immediately
+    }));
+    setAipInput(INIT_PRICE);
+  }
+
+  // Faculty starts the current quarter (enables student timers)
+  function startCurrentQuarter() {
+    setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
+  }
+
+  // Faculty processes the current quarter and advances
+  function processQuarterAndAdvance() {
     setGameState(prev => {
-      const newAipHistory = [...prev.aipHistory, { quarter: prev.currentQuarter, aip: aipInput }];
+      const qNum = prev.currentQuarter;
+      const newAipHistory = [...prev.aipHistory, { quarter: qNum, aip: aipInput }];
       let updatedTeams = prev.teams.map(team => {
         const prevData = team.quarters.length > 0 ? team.quarters[team.quarters.length - 1] : null;
-        const phase = getPhase(prev.currentQuarter);
+        const phase = getPhase(qNum);
         const result = simulateQuarter(team.pendingPrice || INIT_PRICE, aipInput, phase, team.pendingPromo || 0, prevData);
         return { ...team, quarters: [...team.quarters, result], pendingPrice: null, pendingPromo: null, submitted: false };
       });
-      // Apply SD penalty
       if (prev.sdPenaltyEnabled) {
         updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
       }
-      return { ...prev, currentQuarter: prev.currentQuarter + 1, aipHistory: newAipHistory,
-               teams: updatedTeams, status: prev.currentQuarter >= 12 ? "finished" : "active" };
+      return { ...prev, currentQuarter: qNum + 1, aipHistory: newAipHistory,
+               teams: updatedTeams, status: qNum >= 12 ? "finished" : "waiting",
+               quarterStarted: false }; // Next quarter NOT started until faculty clicks Start
     });
   }
 
@@ -539,8 +572,9 @@ function FacultyDashboard({ onLogout }) {
         <div className="sidebar-footer">
           <div className="game-status-badge">
             <span className={`status-dot ${gameState.status}`} />
-            Q{Math.min(gameState.currentQuarter, 12)} of 12 • Phase {currentPhase}
+            {gameState.status === "setup" ? "Setup" : `Q${Math.min(gameState.currentQuarter, 12)} of 12 • Phase ${currentPhase}`}
           </div>
+          <div className="game-id-badge">{gameState.gameId}</div>
           <button className="nav-item logout-item" onClick={onLogout}>
             <Icon d={Icons.logout} size={18} /><span>Logout</span>
           </button>
@@ -556,13 +590,17 @@ function FacultyDashboard({ onLogout }) {
                 <p className="page-desc">Manage quarters, set AIP, and monitor team submissions</p>
               </div>
               <div className="header-badges">
+                <div className="hb" style={{borderColor:"var(--amber-600)",background:"var(--amber-100)"}}>
+                  <span className="hb-label">Game ID</span>
+                  <span className="hb-value" style={{color:"var(--amber-600)",fontSize:"0.85rem",letterSpacing:"0.03em"}}>{gameState.gameId}</span>
+                </div>
                 <div className="hb" style={{borderColor: cfg.color}}>
                   <span className="hb-label">Phase</span>
                   <span className="hb-value" style={{color: cfg.color}}>{currentPhase}</span>
                 </div>
                 <div className="hb">
                   <span className="hb-label">Quarter</span>
-                  <span className="hb-value">{Math.min(gameState.currentQuarter, 12)}</span>
+                  <span className="hb-value">{Math.max(Math.min(gameState.currentQuarter, 12), 1)}</span>
                 </div>
                 <div className="hb">
                   <span className="hb-label">Teams</span>
@@ -571,52 +609,92 @@ function FacultyDashboard({ onLogout }) {
               </div>
             </div>
 
-            <div className="phase-indicator" style={{background: `linear-gradient(135deg, ${cfg.color}, ${cfg.accent})`}}>
-              <div className="pi-tag">{cfg.tag}</div>
-              <h2>{cfg.name}</h2>
-              <p>{cfg.desc}</p>
-              <div className="pi-params">
-                <span>VC: ₹{cfg.vc}/meal</span><span>FC: ₹{cfg.fc}/qtr</span>
-                {cfg.promo && <span className="pi-badge">Promos ON</span>}
-                {cfg.recession && <span className="pi-badge warn">RECESSION</span>}
-              </div>
-            </div>
-
-            {gameState.currentQuarter <= 12 ? (
+            {/* GAME NOT STARTED YET */}
+            {gameState.status === "setup" && (
               <div className="control-panel">
-                <div className="control-card">
-                  <h3>Set Average Industry Price (AIP)</h3>
-                  <p className="cc-desc">Announce this to the class before teams submit their prices.</p>
-                  <div className="aip-input-row">
-                    <button className="aip-btn" onClick={() => setAipInput(p => Math.max(0, +(p - PRICE_STEP).toFixed(2)))}>−</button>
-                    <div className="aip-display">
-                      <span className="aip-currency">₹</span>
-                      <input type="number" value={aipInput} onChange={e => setAipInput(+e.target.value)} step={PRICE_STEP} min={0} />
-                    </div>
-                    <button className="aip-btn" onClick={() => setAipInput(p => +(p + PRICE_STEP).toFixed(2))}>+</button>
+                <div className="control-card" style={{textAlign:"center",padding:"2rem"}}>
+                  <div style={{fontSize:"3rem",marginBottom:"0.5rem"}}>🎮</div>
+                  <h2 style={{marginBottom:"0.5rem"}}>Ready to Start?</h2>
+                  <p className="cc-desc">Upload your roster, configure settings, then start the simulation. A unique Game ID has been generated.</p>
+                  <div className="game-id-display">
+                    <span className="gid-label">Game ID</span>
+                    <span className="gid-value">{gameState.gameId}</span>
+                    <span className="gid-hint">Share this with students</span>
                   </div>
+                  <button className="advance-btn" onClick={startNewGame} style={{marginTop:"1.5rem"}}>
+                    <Icon d={Icons.play} size={20} />
+                    Start Fresh Game
+                  </button>
+                  <button type="button" className="btn-push" style={{marginTop:"0.75rem",background:"var(--text-muted)"}} onClick={() => setGameState(p => ({...p, gameId: generateGameId()}))}>
+                    Regenerate Game ID
+                  </button>
                 </div>
-
-                <div className="control-card">
-                  <h3>Submissions</h3>
-                  <div className="submission-meter">
-                    <div className="meter-bar">
-                      <div className="meter-fill" style={{width: `${(submittedCount / gameState.teams.length)*100}%`}} />
-                    </div>
-                    <span className="meter-text">{submittedCount} / {gameState.teams.length} teams submitted</span>
-                  </div>
-                </div>
-
-                <button className="advance-btn" onClick={advanceQuarter}>
-                  <Icon d={Icons.play} size={20} />
-                  Process Quarter {gameState.currentQuarter} & Advance
-                </button>
               </div>
-            ) : (
+            )}
+
+            {/* GAME ACTIVE — show phase indicator and controls */}
+            {(gameState.status === "active" || gameState.status === "waiting") && gameState.currentQuarter <= 12 && (
+              <>
+                <div className="phase-indicator" style={{background: `linear-gradient(135deg, ${cfg.color}, ${cfg.accent})`}}>
+                  <div className="pi-tag">{cfg.tag}</div>
+                  <h2>{cfg.name}</h2>
+                  <p>{cfg.desc}</p>
+                  <div className="pi-params">
+                    <span>VC: ₹{cfg.vc}/meal</span><span>FC: ₹{cfg.fc}/qtr</span>
+                    {cfg.promo && <span className="pi-badge">Promos ON</span>}
+                    {cfg.recession && <span className="pi-badge warn">RECESSION</span>}
+                  </div>
+                </div>
+
+                <div className="control-panel">
+                  <div className="control-card">
+                    <h3>Set Average Industry Price (AIP)</h3>
+                    <p className="cc-desc">Announce this to the class before teams submit their prices.</p>
+                    <div className="aip-input-row">
+                      <button className="aip-btn" onClick={() => setAipInput(p => Math.max(0, +(p - PRICE_STEP).toFixed(2)))}>−</button>
+                      <div className="aip-display">
+                        <span className="aip-currency">₹</span>
+                        <input type="number" value={aipInput} onChange={e => setAipInput(+e.target.value)} step={PRICE_STEP} min={0} />
+                      </div>
+                      <button className="aip-btn" onClick={() => setAipInput(p => +(p + PRICE_STEP).toFixed(2))}>+</button>
+                    </div>
+                  </div>
+
+                  <div className="control-card">
+                    <h3>Submissions</h3>
+                    <div className="submission-meter">
+                      <div className="meter-bar">
+                        <div className="meter-fill" style={{width: `${gameState.teams.length > 0 ? (submittedCount / gameState.teams.length)*100 : 0}%`}} />
+                      </div>
+                      <span className="meter-text">{submittedCount} / {gameState.teams.length} teams submitted</span>
+                    </div>
+                  </div>
+
+                  {/* Two-step: Start Quarter → then Process & Advance */}
+                  {!gameState.quarterStarted ? (
+                    <button className="advance-btn" onClick={startCurrentQuarter} style={{background:"var(--green-700)"}}>
+                      <Icon d={Icons.play} size={20} />
+                      Start Quarter {gameState.currentQuarter} — Begin Timer for Students
+                    </button>
+                  ) : (
+                    <button className="advance-btn" onClick={processQuarterAndAdvance}>
+                      <Icon d={Icons.check} size={20} />
+                      Process Quarter {gameState.currentQuarter} & Advance
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* GAME FINISHED */}
+            {gameState.status === "finished" && (
               <div className="control-card finished-card">
                 <div className="finished-icon">🏁</div>
                 <h2>Simulation Complete</h2>
-                <p>All 12 quarters played. Check Leaderboard and Analytics for results.</p>
+                <p>Game <strong>{gameState.gameId}</strong> — All 12 quarters played. Check Leaderboard, Scores, and Analytics for results.</p>
+                <button type="button" className="btn-push" style={{marginTop:"1rem"}} onClick={() => setGameState(p => ({...p, status:"setup", currentQuarter:0, quarterStarted:false}))}>
+                  Set Up New Game
+                </button>
               </div>
             )}
 
@@ -876,7 +954,7 @@ function FacultyDashboard({ onLogout }) {
                       totProfit: t.totProfit, totRevenue: t.totRevenue, totSales: t.totSales,
                       quarters: t.quarters.map((q,i) => ({ quarter: i+1, ...q }))
                     })), aipHistory: gameState.aipHistory, sdPenaltyEnabled: gameState.sdPenaltyEnabled,
-                    timestamp: new Date().toISOString() };
+                    gameId: gameState.gameId, timestamp: new Date().toISOString() };
                     const res = await pushToSheets(gameState.sheetsUrl, payload);
                     setPushStatus(res);
                   }} disabled={!gameState.sheetsUrl}>

@@ -1064,3 +1064,34 @@ textarea { resize: vertical; }
   .faculty-wait-banner { flex-direction: column; text-align: center; }
   .faculty-wait-banner .btn-push { margin-left: 0 !important; }
 }
+
+/* ─── Game ID Display ──────────────────────────────────────── */
+.game-id-display {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 1.5rem; padding: 1rem;
+  background: var(--bg-alt); border-radius: var(--radius);
+  border: 2px dashed var(--amber-600);
+}
+.gid-label {
+  font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; color: var(--text-muted);
+}
+.gid-value {
+  font-family: 'Courier New', monospace;
+  font-size: 1.6rem; font-weight: 800; color: var(--amber-600);
+  letter-spacing: 0.05em; margin: 0.25rem 0;
+}
+.gid-hint {
+  font-size: 0.78rem; color: var(--text-secondary);
+}
+.game-id-badge {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem; font-weight: 700;
+  color: var(--amber-600);
+  background: rgba(217,119,6,0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  margin-top: 0.35rem;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
