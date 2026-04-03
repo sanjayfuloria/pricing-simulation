@@ -501,7 +501,10 @@ function FacultyDashboard({ onLogout }) {
     });
   }
 
-  const scoredTeams = useMemo(() => calcScores(gameState.teams), [gameState.teams]);
+  const scoredTeams = useMemo(() => {
+    try { return calcScores(gameState.teams); }
+    catch(e) { console.error("calcScores error:", e); return gameState.teams.map((t,i) => ({...t, score:0, rank:i+1, totProfit:0, totRevenue:0, totSales:0, penalties:0, growth:0})); }
+  }, [gameState.teams]);
 
   const submittedCount = gameState.teams.filter(t => t.submitted).length;
 
@@ -509,7 +512,7 @@ function FacultyDashboard({ onLogout }) {
     { id: "control", label: "Game Control", icon: Icons.settings },
     { id: "roster", label: "Roster Upload", icon: Icons.download },
     { id: "leaderboard", label: "Leaderboard", icon: Icons.trophy },
-    { id: "scores", label: "Scores & Ranks", icon: Icons.chart },
+    { id: "scores", label: "Scores & Ranks", icon: Icons.eye },
     { id: "teams", label: "All Teams", icon: Icons.users },
     { id: "analytics", label: "Analytics", icon: Icons.chart },
     { id: "sheets", label: "Google Sheets", icon: Icons.grid },
@@ -527,7 +530,7 @@ function FacultyDashboard({ onLogout }) {
         </div>
         <div className="sidebar-nav">
           {tabs.map(t => (
-            <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+            <button type="button" key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setTab(t.id); }}>
               <Icon d={t.icon} size={18} />
               <span>{t.label}</span>
             </button>
@@ -784,9 +787,9 @@ function FacultyDashboard({ onLogout }) {
                         <td>{t.isIndividual ? "Individual" : "Team"}</td>
                         <td className={t.totProfit >= 0 ? "profit-pos" : "profit-neg"}>{fmt(t.totProfit)}</td>
                         <td>{fmt(t.totRevenue)}</td>
-                        <td>{t.totSales.toLocaleString("en-IN")}</td>
-                        <td className={t.penalties > 0 ? "profit-neg" : ""}>{t.penalties}</td>
-                        <td>{t.growth > 0 ? "+" : ""}{t.growth}%</td>
+                        <td>{(t.totSales || 0).toLocaleString("en-IN")}</td>
+                        <td className={t.penalties > 0 ? "profit-neg" : ""}>{t.penalties || 0}</td>
+                        <td>{(t.growth || 0) > 0 ? "+" : ""}{t.growth || 0}%</td>
                         <td><strong style={{fontSize:"1.1em"}}>{t.score}</strong></td>
                       </tr>
                     ))}
