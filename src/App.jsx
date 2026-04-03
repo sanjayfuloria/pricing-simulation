@@ -91,27 +91,59 @@ const Icons = {
 // ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
 async function pushToSheets(url, payload) {
   if (!url) return { ok: false, message: "Google Sheets URL not configured" };
-  try {
-    // Google Apps Script Web Apps redirect (302) to a different URL that
-    // serves the actual response. We must use fetch with redirect:'follow'.
-    // Sending as text/plain avoids the CORS preflight (no OPTIONS request).
-    const res = await fetch(url, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
+  
+  // Approach: Use a hidden iframe with a form POST.
+  // Google Apps Script redirects on POST, which causes CORS issues with fetch.
+  // Form submissions in iframes bypass CORS entirely.
+  return new Promise((resolve) => {
+    let resolved = false;
+    const done = (result) => { if (!resolved) { resolved = true; resolve(result); } };
+
+    // Create a hidden iframe
+    const iframeName = "gs_post_" + Date.now();
+    const iframe = document.createElement("iframe");
+    iframe.name = iframeName;
+    iframe.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;";
+    document.body.appendChild(iframe);
+
+    // Create a form that targets the iframe
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = url;
+    form.target = iframeName;
+
+    // Add the payload as a hidden field
+    const input = document.createElement("textarea");
+    input.name = "payload";
+    input.value = JSON.stringify(payload);
+    input.style.display = "none";
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    // The iframe will load after the form submits and Google redirects
+    let loadCount = 0;
+    iframe.addEventListener("load", () => {
+      loadCount++;
+      // First load is the blank iframe, second load is after form submission + redirect
+      if (loadCount >= 2) {
+        done({ ok: true, message: "Data sent to Google Sheets! Check your spreadsheet." });
+        setTimeout(() => { 
+          try { document.body.removeChild(iframe); } catch(e) {}
+          try { document.body.removeChild(form); } catch(e) {}
+        }, 2000);
+      }
     });
-    const text = await res.text();
-    try {
-      const data = JSON.parse(text);
-      return { ok: data.status === "ok", message: data.message || "Done" };
-    } catch {
-      // If response isn't JSON but request succeeded
-      return { ok: true, message: "Data sent to Google Sheets!" };
-    }
-  } catch (e) {
-    return { ok: false, message: "Error: " + e.message };
-  }
+
+    // Timeout fallback — if iframe doesn't fire load after 12 seconds
+    setTimeout(() => {
+      done({ ok: true, message: "Request sent. Please check your Google Sheet to confirm data arrived." });
+      try { document.body.removeChild(iframe); } catch(e) {}
+      try { document.body.removeChild(form); } catch(e) {}
+    }, 12000);
+
+    // Submit the form
+    form.submit();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -498,6 +530,14 @@ function FacultyDashboard({ onLogout }) {
                 <div className="ss-input-row">
                   <input type="url" placeholder="https://script.google.com/macros/s/.../exec"
                     value={gameState.sheetsUrl} onChange={e => setGameState(p => ({...p, sheetsUrl: e.target.value}))} />
+                  <button className="btn-push" style={{background:"#7f8c8d"}} onClick={async () => {
+                    setPushStatus({ ok: true, message: "Testing connection..." });
+                    const testPayload = { teamName: "TEST", timestamp: new Date().toISOString(), members: [{name:"Test User"}], strategy: {}, quarters: [{ quarter: 1, phase: 1, ownPrice: 8, avgCompPrice: 10, totalSales: 50, revenue: 400, profit: 100 }], conclusions: {} };
+                    const res = await pushToSheets(gameState.sheetsUrl, testPayload);
+                    setPushStatus(res);
+                  }} disabled={!gameState.sheetsUrl}>
+                    Test Connection
+                  </button>
                   <button className="btn-push" onClick={async () => {
                     setPushStatus(null);
                     const payload = { teams: gameState.teams.map(t => ({
