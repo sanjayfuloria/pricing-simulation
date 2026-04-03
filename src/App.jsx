@@ -626,7 +626,7 @@ function FacultyDashboard({ onLogout }) {
   function startCurrentQuarter() {
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
     if (FIREBASE_ENABLED) {
-      fbStartQuarter(gameState.gameId, aipInput);
+      fbStartQuarter(gameState.gameId, aipInput).catch(e => console.error("Firebase startQuarter error:", e));
     }
   }
 
@@ -865,12 +865,17 @@ function FacultyDashboard({ onLogout }) {
               onClick={async () => {
                 const resetTeams = gameState.teams.map(t => ({...t, quarters:[], pendingPrice:null, pendingPromo:null, submitted:false}));
                 setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false, teams: resetTeams}));
-                // Sync to Firebase
-                if (FIREBASE_ENABLED) {
-                  await createGame(gameState.gameId, gameState);
-                  await saveTeamsToGame(gameState.gameId, resetTeams);
-                }
                 setSetupStep("playing"); setTab("control");
+                // Sync to Firebase (non-blocking — game starts regardless)
+                if (FIREBASE_ENABLED) {
+                  try {
+                    await createGame(gameState.gameId, gameState);
+                    await saveTeamsToGame(gameState.gameId, resetTeams);
+                    console.log("Firebase: Game created successfully");
+                  } catch (e) {
+                    console.error("Firebase sync error (game still works locally):", e);
+                  }
+                }
               }}>
               🚀 Finalise Teams & Enter Game ({gameState.teams.length} participants)
             </button>
