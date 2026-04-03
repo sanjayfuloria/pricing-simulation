@@ -912,3 +912,110 @@ textarea { resize: vertical; }
   color: var(--text-secondary);
 }
 .aip-setter-hidden { position: absolute; overflow: hidden; width: 0; height: 0; }
+
+/* ─── Timer Bar ────────────────────────────────────────────── */
+.timer-bar {
+  position: relative;
+  background: var(--surface);
+  border: 2px solid var(--green-700);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.timer-progress {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  background: var(--green-700);
+  opacity: 0.12;
+  transition: width 1s linear;
+}
+.timer-content {
+  position: relative; z-index: 1;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.75rem 1.25rem;
+}
+.timer-label {
+  font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);
+}
+.timer-display {
+  font-family: var(--font-display);
+  font-size: 2rem; font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ─── Locked Submit Button ─────────────────────────────────── */
+.submit-btn.locked {
+  background: var(--border) !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ─── Quarter Comments Section ─────────────────────────────── */
+.quarter-comments-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.qc-field label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+.qc-field textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  resize: vertical;
+}
+.qc-field textarea:focus {
+  outline: none;
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+}
+
+/* ─── Strategy in History ──────────────────────────────────── */
+.strategy-history {
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.sh-item { font-size: 0.9rem; }
+.sh-label {
+  font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 700;
+  color: var(--text-muted); display: block;
+  margin-bottom: 0.1rem;
+}
+.sh-item p { color: var(--text); margin: 0; }
+
+/* ─── Quarter Comments in History ──────────────────────────── */
+.qc-history-row {
+  display: flex; gap: 0.75rem; padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.qc-h-q {
+  font-weight: 700; color: var(--green-800); min-width: 2.5rem;
+  font-size: 0.82rem;
+}
+.qc-h-content { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+.qc-h-label {
+  font-weight: 600; font-size: 0.78rem; color: var(--text-secondary);
+}
+
+@media (max-width: 700px) {
+  .quarter-comments-section { grid-template-columns: 1fr; }
+  .timer-display { font-size: 1.5rem; }
+}

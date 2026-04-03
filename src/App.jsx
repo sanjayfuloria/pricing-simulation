@@ -1011,6 +1011,11 @@ function StudentDashboard({ session, onLogout }) {
   const [aip, setAip] = useState(INIT_PRICE);
   const [submitted, setSubmitted] = useState(false);
   const [conclusions, setConclusions] = useState({ revenue: "", profit: "" });
+  const [quarterComments, setQuarterComments] = useState({ observations: "", nextStrategy: "" });
+  const [quarterReady, setQuarterReady] = useState(true); // false = waiting for faculty to process
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const timerRef = useRef(null);
 
   const currentQuarter = quarters.length + 1;
   const phase = getPhase(Math.min(currentQuarter, 12));
@@ -1021,18 +1026,74 @@ function StudentDashboard({ session, onLogout }) {
 
   const preview = currentQuarter <= 12 ? simulateQuarter(currentInput.price, aip, phase, Math.min(currentInput.promo, maxPromo), prevData) : null;
 
+  // Timer logic: Q1 of each phase = 6 min, Q2-Q4 of each phase = 3 min
+  const getTimerDuration = (qNum) => {
+    const qInPhase = ((qNum - 1) % 4) + 1; // 1,2,3,4 within each phase
+    return qInPhase === 1 ? 360 : 180; // 6 min or 3 min in seconds
+  };
+
+  const startTimer = useCallback(() => {
+    const duration = getTimerDuration(currentQuarter);
+    setTimerSeconds(duration);
+    setTimerRunning(true);
+    setQuarterReady(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimerSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setTimerRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [currentQuarter]);
+
+  // Start timer for Q1 automatically when game starts
+  useEffect(() => {
+    if (gamePhase === "playing" && currentQuarter === 1 && !timerRunning && timerSeconds === 0) {
+      startTimer();
+    }
+  }, [gamePhase]);
+
+  // Cleanup timer
+  useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
+
+  const formatTimer = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  const timerColor = timerSeconds <= 30 ? "var(--red-600)" : timerSeconds <= 60 ? "var(--amber-600)" : "var(--green-700)";
+  const timerPct = timerRunning ? (timerSeconds / getTimerDuration(currentQuarter)) * 100 : 0;
+
   const submitQuarter = () => {
-    const result = simulateQuarter(currentInput.price, aip, phase, Math.min(currentInput.promo, maxPromo), prevData);
+    const result = {
+      ...simulateQuarter(currentInput.price, aip, phase, Math.min(currentInput.promo, maxPromo), prevData),
+      observations: quarterComments.observations,
+      nextStrategy: quarterComments.nextStrategy,
+    };
     setQuarters(prev => [...prev, result]);
     setSubmitted(true);
-    setTimeout(() => { setSubmitted(false); setCurrentInput({ price: currentInput.price, promo: 0 }); }, 1500);
+    setQuarterReady(false); // Lock until faculty processes next quarter
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimerRunning(false);
+    setTimerSeconds(0);
+    setTimeout(() => {
+      setSubmitted(false);
+      setCurrentInput({ price: currentInput.price, promo: 0 });
+      setQuarterComments({ observations: "", nextStrategy: "" });
+      // Auto-start timer for next quarter after short delay
+      setTimeout(() => { startTimer(); }, 500);
+    }, 1500);
   };
 
   const totRev = quarters.reduce((s,q) => s+q.revenue, 0);
   const totProf = quarters.reduce((s,q) => s+q.profit, 0);
   const totSales = quarters.reduce((s,q) => s+q.totalSales, 0);
 
-  // Determine which phases have been unlocked (based on quarters completed)
   const unlockedPhase = currentQuarter <= 4 ? 1 : currentQuarter <= 8 ? 2 : 3;
 
   // PRE-GAME STRATEGY SCREEN
@@ -1133,6 +1194,19 @@ function StudentDashboard({ session, onLogout }) {
 
             {currentQuarter <= 12 ? (
               <>
+                {/* TIMER BAR */}
+                <div className="timer-bar" style={{borderColor: timerColor}}>
+                  <div className="timer-progress" style={{width: `${timerPct}%`, background: timerColor}} />
+                  <div className="timer-content">
+                    <span className="timer-label">
+                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process...")}
+                    </span>
+                    <span className="timer-display" style={{color: timerColor}}>
+                      {timerRunning ? formatTimer(timerSeconds) : (quarterReady ? "0:00" : "⏳")}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="play-grid">
                   <div className="play-input-card">
                     <h3>Set Your Price</h3>
@@ -1151,8 +1225,11 @@ function StudentDashboard({ session, onLogout }) {
                         <div className="promo-inline"><span>₹</span><input type="number" value={currentInput.promo} min={0} max={maxPromo} onChange={e => setCurrentInput(p => ({...p, promo: Math.min(+e.target.value, maxPromo)}))} /></div>
                       </div>
                     )}
-                    <button className={`submit-btn ${submitted ? "submitted" : ""}`} onClick={submitQuarter} disabled={submitted}>
-                      {submitted ? <><Icon d={Icons.check} size={18} /> Submitted!</> : <><Icon d={Icons.send} size={18} /> Submit Quarter {currentQuarter}</>}
+                    <button className={`submit-btn ${submitted ? "submitted" : ""} ${!quarterReady ? "locked" : ""}`}
+                      onClick={submitQuarter} disabled={submitted || !quarterReady}>
+                      {submitted ? <><Icon d={Icons.check} size={18} /> Submitted!</>
+                        : !quarterReady ? <><Icon d={Icons.lock} size={18} /> Waiting for Faculty...</>
+                        : <><Icon d={Icons.send} size={18} /> Submit Quarter {currentQuarter}</>}
                     </button>
                   </div>
 
@@ -1162,9 +1239,6 @@ function StudentDashboard({ session, onLogout }) {
                     <div className="aip-display-readonly">
                       <span className="aip-label-ro">Avg Industry Price (set by faculty)</span>
                       <div className="aip-value-ro">₹{aip.toFixed(2)}</div>
-                      <div className="aip-setter-hidden">
-                        <input type="number" value={aip} onChange={e => setAip(+e.target.value)} step={PRICE_STEP} min={0} style={{opacity:0,position:"absolute",pointerEvents:"none",width:0,height:0}} />
-                      </div>
                     </div>
                     {preview && (
                       <div className="preview-grid">
@@ -1176,6 +1250,22 @@ function StudentDashboard({ session, onLogout }) {
                         <div className={`pv-item ${preview.profit >= 0 ? "positive" : "negative"}`}><span className="pv-l">Profit</span><span className="pv-v">{fmt(preview.profit)}</span></div>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* QUARTER COMMENTS */}
+                <div className="quarter-comments-section">
+                  <div className="qc-field">
+                    <label>Observations for Quarter {currentQuarter}</label>
+                    <textarea rows={2} value={quarterComments.observations}
+                      onChange={e => setQuarterComments(p => ({...p, observations: e.target.value}))}
+                      placeholder="What do you observe about the market this quarter?" />
+                  </div>
+                  <div className="qc-field">
+                    <label>Strategy for Next Quarter</label>
+                    <textarea rows={2} value={quarterComments.nextStrategy}
+                      onChange={e => setQuarterComments(p => ({...p, nextStrategy: e.target.value}))}
+                      placeholder="What will be your approach next quarter?" />
                   </div>
                 </div>
 
@@ -1228,6 +1318,20 @@ function StudentDashboard({ session, onLogout }) {
         {tab === "history" && (
           <div className="page">
             <div className="page-header"><div><h1>Performance History</h1><p className="page-desc">{quarters.length} quarters completed</p></div></div>
+
+            {/* Pre-game Strategy */}
+            {strategy.generic && (
+              <div className="ss-card" style={{marginBottom:"1rem",borderLeft:"4px solid var(--green-700)"}}>
+                <h3>Pre-Game Strategy</h3>
+                <div className="strategy-history">
+                  <div className="sh-item"><span className="sh-label">Generic Strategy</span><p>{strategy.generic}</p></div>
+                  {strategy.year1 && <div className="sh-item"><span className="sh-label">Year 1 (Q1–Q4)</span><p>{strategy.year1}</p></div>}
+                  {strategy.year2 && <div className="sh-item"><span className="sh-label">Year 2 (Q5–Q8)</span><p>{strategy.year2}</p></div>}
+                  {strategy.year3 && <div className="sh-item"><span className="sh-label">Year 3 (Q9–Q12)</span><p>{strategy.year3}</p></div>}
+                </div>
+              </div>
+            )}
+
             {quarters.length === 0 ? (
               <div className="empty-state"><p>No quarters played yet. Go to the Play tab to start.</p></div>
             ) : (
@@ -1255,6 +1359,24 @@ function StudentDashboard({ session, onLogout }) {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Quarter-by-quarter observations and strategies */}
+                {quarters.some(q => q.observations || q.nextStrategy) && (
+                  <div className="ss-card" style={{marginTop:"1rem"}}>
+                    <h3>Quarter Observations & Strategies</h3>
+                    {quarters.map((q, i) => (
+                      (q.observations || q.nextStrategy) ? (
+                        <div className="qc-history-row" key={i}>
+                          <span className="qc-h-q">Q{i+1}</span>
+                          <div className="qc-h-content">
+                            {q.observations && <div><span className="qc-h-label">Observations:</span> {q.observations}</div>}
+                            {q.nextStrategy && <div><span className="qc-h-label">Next Strategy:</span> {q.nextStrategy}</div>}
+                          </div>
+                        </div>
+                      ) : null
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
