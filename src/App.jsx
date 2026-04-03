@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import * as XLSX from "xlsx";
+import {
+  isFirebaseConfigured, createGame, updateGameMeta, saveTeamsToGame,
+  submitStudentPrice, joinGame, checkGameExists, listenToGameMeta,
+  listenToTeams, processQuarterResults, startQuarter as fbStartQuarter,
+  getGameTeamIds,
+} from "./firebase.js";
+
+const FIREBASE_ENABLED = isFirebaseConfigured();
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PRICING SIMULATION PLATFORM — B2B Marketing, IBS Hyderabad
@@ -347,12 +355,19 @@ function LoginScreen({ onLogin }) {
     else { setError("Invalid faculty password"); }
   };
 
-  const handleGameCodeSubmit = () => {
+  const handleGameCodeSubmit = async () => {
     const code = gameCode.trim().toUpperCase();
     if (code.length !== 8) { setError("Please enter a valid 8-character simulation code"); return; }
     setError("");
-    // In a real app, this would fetch team list from server/firebase by game ID.
-    // For now, we use the default list. Faculty-uploaded teams would be synced here.
+    if (FIREBASE_ENABLED) {
+      const meta = await checkGameExists(code);
+      if (!meta) { setError("Game not found. Check your code and try again."); return; }
+      // Fetch team list from Firebase
+      const fbTeams = await getGameTeamIds(code);
+      if (fbTeams.length > 0) {
+        setAvailableTeams(fbTeams.map(t => t.name || t.id));
+      }
+    }
     setStudentStep("teamSelect");
   };
 
@@ -610,6 +625,9 @@ function FacultyDashboard({ onLogout }) {
   // Faculty starts the current quarter (enables student timers)
   function startCurrentQuarter() {
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
+    if (FIREBASE_ENABLED) {
+      fbStartQuarter(gameState.gameId, aipInput);
+    }
   }
 
   // Faculty processes the current quarter and advances
@@ -626,11 +644,35 @@ function FacultyDashboard({ onLogout }) {
       if (prev.sdPenaltyEnabled) {
         updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
       }
+      const isFinished = qNum >= 12;
+      // Sync to Firebase
+      if (FIREBASE_ENABLED) {
+        processQuarterResults(prev.gameId, updatedTeams, qNum + 1, newAipHistory, isFinished);
+      }
       return { ...prev, currentQuarter: qNum + 1, aipHistory: newAipHistory,
-               teams: updatedTeams, status: qNum >= 12 ? "finished" : "waiting",
-               quarterStarted: false }; // Next quarter NOT started until faculty clicks Start
+               teams: updatedTeams, status: isFinished ? "finished" : "waiting",
+               quarterStarted: false };
     });
   }
+
+  // Listen to Firebase for real-time team submissions
+  useEffect(() => {
+    if (!FIREBASE_ENABLED || setupStep !== "playing") return;
+    const unsub = listenToTeams(gameState.gameId, (fbTeams) => {
+      setGameState(prev => {
+        // Merge Firebase team data (submissions) with local state
+        const merged = prev.teams.map(t => {
+          const fbTeam = fbTeams.find(ft => ft.id === t.id);
+          if (fbTeam && fbTeam.submitted && !t.submitted) {
+            return { ...t, pendingPrice: fbTeam.pendingPrice, pendingPromo: fbTeam.pendingPromo, submitted: true };
+          }
+          return t;
+        });
+        return { ...prev, teams: merged };
+      });
+    });
+    return unsub;
+  }, [gameState.gameId, setupStep]);
 
   const scoredTeams = useMemo(() => {
     try { return calcScores(gameState.teams); }
@@ -820,9 +862,14 @@ function FacultyDashboard({ onLogout }) {
 
             <button className="login-submit faculty-submit" style={{marginTop:"1rem"}}
               disabled={gameState.teams.length === 0}
-              onClick={() => {
-                setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false,
-                  teams: p.teams.map(t => ({...t, quarters:[], pendingPrice:null, pendingPromo:null, submitted:false}))}));
+              onClick={async () => {
+                const resetTeams = gameState.teams.map(t => ({...t, quarters:[], pendingPrice:null, pendingPromo:null, submitted:false}));
+                setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false, teams: resetTeams}));
+                // Sync to Firebase
+                if (FIREBASE_ENABLED) {
+                  await createGame(gameState.gameId, gameState);
+                  await saveTeamsToGame(gameState.gameId, resetTeams);
+                }
                 setSetupStep("playing"); setTab("control");
               }}>
               🚀 Finalise Teams & Enter Game ({gameState.teams.length} participants)
@@ -1372,7 +1419,23 @@ function StudentDashboard({ session, onLogout }) {
   }, [currentQuarter]);
 
   // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
-  // The timer is only started via unlockNextQuarter() (triggered by faculty).
+  // The timer is only started via unlockNextQuarter() (triggered by faculty or Firebase).
+
+  // Listen to Firebase for faculty starting quarters and AIP updates
+  useEffect(() => {
+    if (!FIREBASE_ENABLED || gamePhase !== "playing" || !session.gameCode) return;
+    const unsub = listenToGameMeta(session.gameCode, (meta) => {
+      // Faculty started the quarter — unlock and start timer
+      if (meta.quarterStarted && !quarterReady && !timerRunning) {
+        startTimer();
+      }
+      // Update AIP from faculty
+      if (meta.aipInput && meta.aipInput !== aip) {
+        setAip(meta.aipInput);
+      }
+    });
+    return unsub;
+  }, [gamePhase, session.gameCode, quarterReady, timerRunning, aip]);
 
   // Cleanup timer
   useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
@@ -1407,6 +1470,12 @@ function StudentDashboard({ session, onLogout }) {
     setQuarters(prev => [...prev, result]);
     setSubmitted(true);
     setQuarterReady(false); // LOCK — stays false until faculty processes
+    // Sync to Firebase
+    if (FIREBASE_ENABLED && session.gameCode && session.selectedTeamId) {
+      submitStudentPrice(session.gameCode, `team-${session.selectedTeamId}`,
+        currentInput.price, currentInput.promo,
+        quarterComments.observations, quarterComments.nextStrategy);
+    }
     if (timerRef.current) clearInterval(timerRef.current);
     setTimerRunning(false);
     setTimerSeconds(0);
