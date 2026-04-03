@@ -610,6 +610,22 @@ function FacultyDashboard({ onLogout }) {
 
   const submittedCount = gameState.teams.filter(t => t.submitted).length;
 
+  // Calculate average price from all teams that have submitted this quarter
+  const submittedPrices = gameState.teams.filter(t => t.submitted && t.pendingPrice != null).map(t => t.pendingPrice);
+  const calculatedAIP = submittedPrices.length > 0
+    ? +(submittedPrices.reduce((a, b) => a + b, 0) / submittedPrices.length).toFixed(2)
+    : null;
+  const priceMin = submittedPrices.length > 0 ? Math.min(...submittedPrices) : null;
+  const priceMax = submittedPrices.length > 0 ? Math.max(...submittedPrices) : null;
+  const priceSD = submittedPrices.length >= 2 ? +calcStdDev(submittedPrices).toFixed(2) : null;
+
+  // Auto-update AIP input when calculated AIP changes
+  useEffect(() => {
+    if (calculatedAIP !== null && gameState.quarterStarted) {
+      setAipInput(calculatedAIP);
+    }
+  }, [calculatedAIP, gameState.quarterStarted]);
+
   const tabs = [
     { id: "control", label: "Game Control", icon: Icons.settings },
     { id: "leaderboard", label: "Leaderboard", icon: Icons.trophy },
@@ -878,6 +894,38 @@ function FacultyDashboard({ onLogout }) {
                       <span className="meter-text">{submittedCount} / {gameState.teams.length} teams submitted</span>
                     </div>
                   </div>
+
+                  {/* Calculated AIP from submissions — shown before faculty processes */}
+                  {submittedPrices.length > 0 && (
+                    <div className="control-card calculated-aip-card">
+                      <h3>📊 Calculated Average Industry Price</h3>
+                      <div className="calc-aip-grid">
+                        <div className="calc-aip-main">
+                          <span className="calc-aip-label">Average Price</span>
+                          <span className="calc-aip-value">₹{calculatedAIP.toFixed(2)}</span>
+                        </div>
+                        <div className="calc-aip-stat">
+                          <span className="calc-aip-label">Min</span>
+                          <span className="calc-aip-stat-val">₹{priceMin.toFixed(2)}</span>
+                        </div>
+                        <div className="calc-aip-stat">
+                          <span className="calc-aip-label">Max</span>
+                          <span className="calc-aip-stat-val">₹{priceMax.toFixed(2)}</span>
+                        </div>
+                        {priceSD !== null && (
+                          <div className="calc-aip-stat">
+                            <span className="calc-aip-label">Std Dev</span>
+                            <span className="calc-aip-stat-val">₹{priceSD}</span>
+                          </div>
+                        )}
+                        <div className="calc-aip-stat">
+                          <span className="calc-aip-label">Submissions</span>
+                          <span className="calc-aip-stat-val">{submittedPrices.length}</span>
+                        </div>
+                      </div>
+                      <p className="calc-aip-note">Auto-populated into the AIP field above. You can adjust before processing.</p>
+                    </div>
+                  )}
 
                   {/* Two-step: Start Quarter → then Process & Advance */}
                   {!gameState.quarterStarted ? (

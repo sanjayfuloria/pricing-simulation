@@ -1109,3 +1109,40 @@ textarea { resize: vertical; }
   text-transform: none; letter-spacing: normal;
   color: var(--text); font-family: var(--font-display);
 }
+
+/* ─── Calculated AIP Card ──────────────────────────────────── */
+.calculated-aip-card {
+  border: 2px solid var(--green-700) !important;
+  background: var(--green-50) !important;
+}
+.calculated-aip-card h3 {
+  color: var(--green-800); text-transform: none;
+  letter-spacing: normal; font-family: var(--font-display);
+}
+.calc-aip-grid {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  align-items: flex-end; margin-top: 0.75rem;
+}
+.calc-aip-main {
+  display: flex; flex-direction: column;
+}
+.calc-aip-label {
+  font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700;
+  color: var(--text-muted);
+}
+.calc-aip-value {
+  font-family: var(--font-display);
+  font-size: 2.2rem; font-weight: 800;
+  color: var(--green-800); line-height: 1.1;
+}
+.calc-aip-stat {
+  display: flex; flex-direction: column;
+}
+.calc-aip-stat-val {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+}
+.calc-aip-note {
+  font-size: 0.78rem; color: var(--text-secondary);
+  margin-top: 0.75rem; font-style: italic;
+}
