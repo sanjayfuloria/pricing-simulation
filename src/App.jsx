@@ -92,9 +92,15 @@ const Icons = {
 async function pushToSheets(url, payload) {
   if (!url) return { ok: false, message: "Google Sheets URL not configured" };
   try {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    const data = await res.json();
-    return { ok: true, message: data.message || "Saved!" };
+    const res = await fetch(url, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload),
+    });
+    // no-cors returns opaque response (status 0), so we can't read body
+    // but if no error was thrown, the request was sent successfully
+    return { ok: true, message: "Data sent to Google Sheets! Check your spreadsheet." };
   } catch (e) { return { ok: false, message: e.message }; }
 }
 
