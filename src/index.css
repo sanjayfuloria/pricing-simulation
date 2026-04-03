@@ -1019,3 +1019,48 @@ textarea { resize: vertical; }
   .quarter-comments-section { grid-template-columns: 1fr; }
   .timer-display { font-size: 1.5rem; }
 }
+
+/* ─── Comment Validation ───────────────────────────────────── */
+.char-count {
+  float: right; font-weight: 400; font-size: 0.72rem;
+  text-transform: none; letter-spacing: normal;
+}
+.char-count.ok { color: var(--green-700); }
+.char-count.short { color: var(--red-600); }
+.elaborate-msg {
+  display: block; margin-top: 0.25rem;
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--red-600);
+  animation: flashElaborate 0.6s ease-in-out;
+}
+@keyframes flashElaborate {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.field-warning { border-color: var(--red-600) !important; }
+.comment-error {
+  margin-top: 0.5rem; padding: 0.5rem 0.75rem;
+  background: var(--red-50); color: var(--red-600);
+  border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+}
+.submit-btn.needs-comments { opacity: 0.85; }
+
+/* ─── Faculty Wait Banner ──────────────────────────────────── */
+.faculty-wait-banner {
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--amber-100); border: 2px solid var(--amber-600);
+  border-radius: var(--radius); padding: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+.fw-icon { font-size: 2rem; flex-shrink: 0; }
+.faculty-wait-banner h3 {
+  font-size: 1rem; margin: 0 0 0.15rem; color: var(--text);
+  text-transform: none; letter-spacing: normal;
+}
+.faculty-wait-banner p {
+  font-size: 0.85rem; color: var(--text-secondary); margin: 0;
+}
+@media (max-width: 700px) {
+  .faculty-wait-banner { flex-direction: column; text-align: center; }
+  .faculty-wait-banner .btn-push { margin-left: 0 !important; }
+}

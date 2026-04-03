@@ -1069,7 +1069,19 @@ function StudentDashboard({ session, onLogout }) {
   const timerColor = timerSeconds <= 30 ? "var(--red-600)" : timerSeconds <= 60 ? "var(--amber-600)" : "var(--green-700)";
   const timerPct = timerRunning ? (timerSeconds / getTimerDuration(currentQuarter)) * 100 : 0;
 
+  // Validation: comments must be at least 100 characters each
+  const [commentError, setCommentError] = useState("");
+  const obsLen = quarterComments.observations.trim().length;
+  const stratLen = quarterComments.nextStrategy.trim().length;
+  const commentsValid = obsLen >= 100 && stratLen >= 100;
+
   const submitQuarter = () => {
+    // Validate comments
+    if (obsLen < 100 || stratLen < 100) {
+      setCommentError("Please elaborate — both Observations and Strategy must be at least 100 characters each.");
+      return;
+    }
+    setCommentError("");
     const result = {
       ...simulateQuarter(currentInput.price, aip, phase, Math.min(currentInput.promo, maxPromo), prevData),
       observations: quarterComments.observations,
@@ -1077,17 +1089,24 @@ function StudentDashboard({ session, onLogout }) {
     };
     setQuarters(prev => [...prev, result]);
     setSubmitted(true);
-    setQuarterReady(false); // Lock until faculty processes next quarter
+    setQuarterReady(false); // LOCK — stays false until faculty processes
     if (timerRef.current) clearInterval(timerRef.current);
     setTimerRunning(false);
     setTimerSeconds(0);
+    // DO NOT auto-start timer or auto-unlock. Student must wait for faculty.
     setTimeout(() => {
       setSubmitted(false);
       setCurrentInput({ price: currentInput.price, promo: 0 });
       setQuarterComments({ observations: "", nextStrategy: "" });
-      // Auto-start timer for next quarter after short delay
-      setTimeout(() => { startTimer(); }, 500);
+      // quarterReady stays FALSE — only startTimer() sets it to true
+      // Faculty must trigger the next round (for now, a "Start Next Quarter" button)
     }, 1500);
+  };
+
+  // Faculty unlock: student can manually trigger next quarter timer
+  // In a real multi-player setup, this would come from a shared server/firebase
+  const unlockNextQuarter = () => {
+    startTimer();
   };
 
   const totRev = quarters.reduce((s,q) => s+q.revenue, 0);
@@ -1225,12 +1244,13 @@ function StudentDashboard({ session, onLogout }) {
                         <div className="promo-inline"><span>₹</span><input type="number" value={currentInput.promo} min={0} max={maxPromo} onChange={e => setCurrentInput(p => ({...p, promo: Math.min(+e.target.value, maxPromo)}))} /></div>
                       </div>
                     )}
-                    <button className={`submit-btn ${submitted ? "submitted" : ""} ${!quarterReady ? "locked" : ""}`}
+                    <button className={`submit-btn ${submitted ? "submitted" : ""} ${!quarterReady ? "locked" : ""} ${(!commentsValid && quarterReady && !submitted) ? "needs-comments" : ""}`}
                       onClick={submitQuarter} disabled={submitted || !quarterReady}>
                       {submitted ? <><Icon d={Icons.check} size={18} /> Submitted!</>
                         : !quarterReady ? <><Icon d={Icons.lock} size={18} /> Waiting for Faculty...</>
                         : <><Icon d={Icons.send} size={18} /> Submit Quarter {currentQuarter}</>}
                     </button>
+                    {commentError && <div className="comment-error">{commentError}</div>}
                   </div>
 
                   <div className="play-preview-card">
@@ -1253,21 +1273,43 @@ function StudentDashboard({ session, onLogout }) {
                   </div>
                 </div>
 
-                {/* QUARTER COMMENTS */}
+                {/* QUARTER COMMENTS — Mandatory, min 100 chars */}
                 <div className="quarter-comments-section">
                   <div className="qc-field">
-                    <label>Observations for Quarter {currentQuarter}</label>
-                    <textarea rows={2} value={quarterComments.observations}
-                      onChange={e => setQuarterComments(p => ({...p, observations: e.target.value}))}
-                      placeholder="What do you observe about the market this quarter?" />
+                    <label>Observations for Quarter {currentQuarter} *
+                      <span className={`char-count ${obsLen >= 100 ? "ok" : "short"}`}>{obsLen}/100 min</span>
+                    </label>
+                    <textarea rows={3} value={quarterComments.observations}
+                      onChange={e => { setQuarterComments(p => ({...p, observations: e.target.value})); setCommentError(""); }}
+                      placeholder="What do you observe about the market this quarter? (minimum 100 characters)"
+                      className={obsLen > 0 && obsLen < 100 ? "field-warning" : ""} />
+                    {obsLen > 0 && obsLen < 100 && <span className="elaborate-msg">Please elaborate</span>}
                   </div>
                   <div className="qc-field">
-                    <label>Strategy for Next Quarter</label>
-                    <textarea rows={2} value={quarterComments.nextStrategy}
-                      onChange={e => setQuarterComments(p => ({...p, nextStrategy: e.target.value}))}
-                      placeholder="What will be your approach next quarter?" />
+                    <label>Strategy for Next Quarter *
+                      <span className={`char-count ${stratLen >= 100 ? "ok" : "short"}`}>{stratLen}/100 min</span>
+                    </label>
+                    <textarea rows={3} value={quarterComments.nextStrategy}
+                      onChange={e => { setQuarterComments(p => ({...p, nextStrategy: e.target.value})); setCommentError(""); }}
+                      placeholder="What will be your approach next quarter? (minimum 100 characters)"
+                      className={stratLen > 0 && stratLen < 100 ? "field-warning" : ""} />
+                    {stratLen > 0 && stratLen < 100 && <span className="elaborate-msg">Please elaborate</span>}
                   </div>
                 </div>
+
+                {/* Waiting for Faculty overlay */}
+                {!quarterReady && !submitted && quarters.length > 0 && (
+                  <div className="faculty-wait-banner">
+                    <div className="fw-icon">⏳</div>
+                    <div>
+                      <h3>Waiting for Faculty</h3>
+                      <p>The faculty needs to process Q{quarters.length} results before you can start Q{currentQuarter}. The timer will begin when the faculty advances the quarter.</p>
+                    </div>
+                    <button className="btn-push" style={{marginLeft:"auto",whiteSpace:"nowrap"}} onClick={unlockNextQuarter}>
+                      Simulate Faculty Advance
+                    </button>
+                  </div>
+                )}
 
                 {quarters.length > 0 && (
                   <div className="last-quarter-strip">
