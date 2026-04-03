@@ -865,10 +865,15 @@ function FacultyDashboard({ onLogout }) {
                   </button>
                   <button className="btn-push" onClick={async () => {
                     setPushStatus(null);
-                    const payload = { teams: gameState.teams.map(t => ({
+                    const scored = calcScores(gameState.teams);
+                    const payload = { teams: scored.map(t => ({
                       name: t.name, section: t.section, members: t.members,
+                      isIndividual: t.isIndividual || false,
+                      rank: t.rank, score: t.score, penalties: t.penalties, growth: t.growth,
+                      totProfit: t.totProfit, totRevenue: t.totRevenue, totSales: t.totSales,
                       quarters: t.quarters.map((q,i) => ({ quarter: i+1, ...q }))
-                    })), aipHistory: gameState.aipHistory, timestamp: new Date().toISOString() };
+                    })), aipHistory: gameState.aipHistory, sdPenaltyEnabled: gameState.sdPenaltyEnabled,
+                    timestamp: new Date().toISOString() };
                     const res = await pushToSheets(gameState.sheetsUrl, payload);
                     setPushStatus(res);
                   }} disabled={!gameState.sheetsUrl}>

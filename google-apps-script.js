@@ -1,5 +1,7 @@
 /**
- * Google Apps Script — Pricing Simulation Data Receiver
+ * Google Apps Script — Pricing Simulation Data Receiver (v3)
+ * 
+ * Handles: Single team, multi-team, scores, SD penalties, individual/team type
  * 
  * SETUP:
  * 1. Create a new Google Sheet
@@ -8,35 +10,26 @@
  *    Execute as: Me | Who has access: Anyone
  * 4. Copy Web App URL into the simulation app
  * 
- * IMPORTANT: After code changes, create a NEW deployment version:
- *   Deploy → Manage deployments → Edit → Version: New version → Deploy
+ * After code changes: Deploy → Manage deployments → Edit → Version: New version → Deploy
  */
 
 function doPost(e) {
   try {
     var raw = "";
-    
-    // Form submissions send data in e.parameter
     if (e.parameter && e.parameter.payload) {
       raw = e.parameter.payload;
-    }
-    // Raw JSON POST sends data in e.postData
-    else if (e.postData && e.postData.contents) {
+    } else if (e.postData && e.postData.contents) {
       raw = e.postData.contents;
-    }
-    else {
-      throw new Error("No data received. Keys: " + Object.keys(e).join(","));
+    } else {
+      throw new Error("No data received");
     }
     
     var data = JSON.parse(raw);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Handle both single-team and multi-team payloads
     if (data.teams) {
-      // Multi-team payload from instructor view
       saveMultiTeamData(ss, data);
     } else {
-      // Single team payload
       saveSingleTeamData(ss, data);
     }
 
@@ -44,17 +37,12 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({status:"ok",message:"Data saved successfully!"}))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    // Log error to a Debug sheet for troubleshooting
     try {
-      var debugSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Debug");
-      if (!debugSheet) {
-        debugSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Debug");
-        debugSheet.appendRow(["Timestamp", "Error", "Raw Data"]);
-      }
-      var rawData = "";
-      try { rawData = e.postData ? e.postData.contents.substring(0, 500) : "no postData"; } catch(x) {}
-      try { rawData = rawData || (e.parameter ? JSON.stringify(e.parameter).substring(0, 500) : "no parameter"); } catch(x) {}
-      debugSheet.appendRow([new Date().toISOString(), err.toString(), rawData]);
+      var debugSheet = getOrCreateSheet(SpreadsheetApp.getActiveSpreadsheet(), "Debug",
+        ["Timestamp", "Error", "Raw Data"]);
+      var rawSnippet = "";
+      try { rawSnippet = (e.postData ? e.postData.contents : JSON.stringify(e.parameter || {})).substring(0, 500); } catch(x) {}
+      debugSheet.appendRow([new Date().toISOString(), err.toString(), rawSnippet]);
     } catch(x) {}
     
     return ContentService
@@ -64,53 +52,84 @@ function doPost(e) {
 }
 
 function saveSingleTeamData(ss, data) {
+  // ── Teams sheet (summary) ──────────────────────────────────
   var teamsSheet = getOrCreateSheet(ss, "Teams", [
-    "Timestamp","Team Name","Section",
-    "Member 1","Member 2","Member 3","Member 4",
-    "Generic Strategy","Year 1 Objectives","Year 2 Objectives","Year 3 Objectives",
-    "Total Revenue","Total Profit","Total Meals Sold",
-    "Revenue Comments","Profit Comments"
+    "Timestamp", "Team/Individual Name", "Type", "Section",
+    "Member 1", "Member 2", "Member 3", "Member 4",
+    "Rank", "Score", "Total Revenue", "Total Profit", "Total Meals Sold",
+    "Penalties", "Growth %",
+    "Strategy", "Revenue Comments", "Profit Comments"
   ]);
 
   var members = data.members || [];
   var strategy = data.strategy || {};
   var quarters = data.quarters || [];
   var conclusions = data.conclusions || {};
+  var isInd = data.isIndividual ? "Individual" : "Team";
 
-  var totalRevenue = 0, totalProfit = 0, totalSales = 0;
-  for (var i = 0; i < quarters.length; i++) {
-    totalRevenue += (quarters[i].revenue || 0);
-    totalProfit += (quarters[i].profit || 0);
-    totalSales += (quarters[i].totalSales || 0);
+  var totalRevenue = data.totRevenue || 0;
+  var totalProfit = data.totProfit || 0;
+  var totalSales = data.totSales || 0;
+  if (!totalRevenue && quarters.length) {
+    for (var i = 0; i < quarters.length; i++) {
+      totalRevenue += (quarters[i].revenue || 0);
+      totalProfit += (quarters[i].profit || 0);
+      totalSales += (quarters[i].totalSales || 0);
+    }
   }
 
   teamsSheet.appendRow([
     data.timestamp || new Date().toISOString(),
-    data.teamName || "", data.section || "",
-    members[0] ? members[0].name : "", members[1] ? members[1].name : "",
-    members[2] ? members[2].name : "", members[3] ? members[3].name : "",
-    strategy.generic || "", strategy.year1 || "",
-    strategy.year2 || "", strategy.year3 || "",
-    totalRevenue, totalProfit, totalSales,
-    conclusions.revenueComments || "", conclusions.profitComments || ""
+    data.teamName || data.name || "",
+    isInd,
+    data.section || "",
+    members[0] ? members[0].name : "",
+    members[1] ? members[1].name : "",
+    members[2] ? members[2].name : "",
+    members[3] ? members[3].name : "",
+    data.rank || "",
+    data.score || "",
+    totalRevenue,
+    totalProfit,
+    totalSales,
+    data.penalties || 0,
+    data.growth || 0,
+    strategy.generic || "",
+    conclusions.revenueComments || conclusions.revenue || "",
+    conclusions.profitComments || conclusions.profit || ""
   ]);
 
+  // ── Quarters sheet (detail) ────────────────────────────────
   var qSheet = getOrCreateSheet(ss, "Quarters", [
-    "Timestamp","Team Name","Section","Quarter","Phase",
-    "Own Price","Avg Industry Price","Promotion Expense",
-    "New Customers","Retained Customers","Total Sales",
-    "Revenue","Profit","Observations","Next Quarter Strategy"
+    "Timestamp", "Team Name", "Type", "Section",
+    "Quarter", "Phase", "Own Price", "Avg Industry Price",
+    "Promotion Expense", "New Customers", "Retained Customers",
+    "Total Sales", "Revenue", "Profit",
+    "SD Penalty", "Z-Score", "Adjusted Profit",
+    "Observations", "Next Quarter Strategy"
   ]);
 
   for (var j = 0; j < quarters.length; j++) {
     var q = quarters[j];
     qSheet.appendRow([
       data.timestamp || new Date().toISOString(),
-      data.teamName || "", data.section || "",
-      q.quarter, q.phase, q.ownPrice, q.avgCompPrice,
-      q.promoExpense || 0, q.newCustomers || 0, q.retainedCustomers || 0,
-      q.totalSales || 0, q.revenue || 0, q.profit || 0,
-      q.observations || "", q.nextStrategy || ""
+      data.teamName || data.name || "",
+      isInd,
+      data.section || "",
+      q.quarter, q.phase,
+      q.price || q.ownPrice || 0,
+      q.avgComp || q.avgCompPrice || 0,
+      q.promo || q.promoExpense || 0,
+      q.newCust || q.newCustomers || 0,
+      q.retained || q.retainedCustomers || 0,
+      q.totalSales || 0,
+      q.revenue || 0,
+      q.profit || 0,
+      q.sdPenalty || 0,
+      q.zScore || "",
+      q.adjustedProfit || q.profit || 0,
+      q.observations || "",
+      q.nextStrategy || ""
     ]);
   }
 }
@@ -137,6 +156,6 @@ function getOrCreateSheet(ss, name, headers) {
 
 function doGet(e) {
   return ContentService
-    .createTextOutput(JSON.stringify({status:"ok",message:"Pricing Simulation API is running."}))
+    .createTextOutput(JSON.stringify({status:"ok",message:"Pricing Simulation API v3 running."}))
     .setMimeType(ContentService.MimeType.JSON);
 }
