@@ -7,18 +7,26 @@
  * 3. Deploy → New deployment → Web app
  *    Execute as: Me | Who has access: Anyone
  * 4. Copy Web App URL into the simulation app
+ * 
+ * IMPORTANT: After any code change, you must create a NEW version:
+ *   Deploy → Manage deployments → Edit → Version: New version → Deploy
  */
 
 function doPost(e) {
   try {
-    var raw;
-    // Handle both form-encoded POST (payload field) and raw JSON POST
-    if (e.parameter && e.parameter.payload) {
-      raw = e.parameter.payload;
-    } else if (e.postData && e.postData.contents) {
+    var raw = "";
+    
+    // Try all possible ways the data might arrive
+    if (e.postData && e.postData.contents) {
       raw = e.postData.contents;
+    } else if (e.parameter && e.parameter.payload) {
+      raw = e.parameter.payload;
     } else {
-      throw new Error("No data received");
+      // Log what we received for debugging
+      var debug = JSON.stringify(e);
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") 
+        || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+      throw new Error("No data found. Received: " + debug.substring(0, 200));
     }
     
     var data = JSON.parse(raw);
@@ -87,7 +95,7 @@ function doPost(e) {
     }
 
     return ContentService
-      .createTextOutput(JSON.stringify({status:"ok",message:"Data saved!"}))
+      .createTextOutput(JSON.stringify({status:"ok",message:"Data saved successfully!"}))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService
@@ -98,6 +106,6 @@ function doPost(e) {
 
 function doGet(e) {
   return ContentService
-    .createTextOutput(JSON.stringify({status:"ok",message:"API running"}))
+    .createTextOutput(JSON.stringify({status:"ok",message:"Pricing Simulation API is running."}))
     .setMimeType(ContentService.MimeType.JSON);
 }
