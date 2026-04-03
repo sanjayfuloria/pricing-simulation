@@ -1095,3 +1095,17 @@ textarea { resize: vertical; }
   text-align: center;
   letter-spacing: 0.04em;
 }
+
+/* ─── Setup Option Cards ───────────────────────────────────── */
+.setup-option-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.setup-option-card h3 {
+  font-size: 1rem; margin-bottom: 0.5rem;
+  text-transform: none; letter-spacing: normal;
+  color: var(--text); font-family: var(--font-display);
+}

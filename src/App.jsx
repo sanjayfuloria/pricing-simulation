@@ -449,29 +449,33 @@ function LoginScreen({ onLogin }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // FACULTY DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
-// Generate unique Game ID: GAME-YYYYMMDD-XXXX
+// Generate 8-character alphanumeric Game ID
 function generateGameId() {
-  const d = new Date();
-  const date = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `GAME-${date}-${rand}`;
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1 to avoid confusion
+  let id = "";
+  for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
 }
 
 function FacultyDashboard({ onLogout }) {
+  // Setup wizard: "pregame" → "teams" → "playing"
+  const [setupStep, setSetupStep] = useState("pregame"); // "pregame" | "teams" | "playing"
   const [tab, setTab] = useState("control");
   const [gameState, setGameState] = useState({
-    currentQuarter: 0, // 0 means game not started yet
+    currentQuarter: 0,
     status: "setup", // "setup" | "active" | "waiting" | "finished"
     aipHistory: [],
-    teams: generateDemoTeams(), sheetsUrl: "",
+    teams: [],
+    sheetsUrl: "",
     gameId: generateGameId(),
     sdPenaltyEnabled: true, allowIndividualPlay: true,
-    quarterStarted: false, // true when faculty has started the current quarter
+    quarterStarted: false,
   });
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
   const [rosterStatus, setRosterStatus] = useState(null);
   const fileInputRef = useRef(null);
+  const [loadOldGameId, setLoadOldGameId] = useState("");
 
   const currentPhase = getPhase(Math.max(gameState.currentQuarter, 1));
   const cfg = PHASE_CONFIG[currentPhase];
@@ -494,20 +498,6 @@ function FacultyDashboard({ onLogout }) {
     }
     e.target.value = "";
   };
-
-  // Start a brand new game (generates new ID, resets everything)
-  function startNewGame() {
-    setGameState(prev => ({
-      ...prev,
-      currentQuarter: 1,
-      status: "active",
-      aipHistory: [],
-      teams: prev.teams.map(t => ({ ...t, quarters: [], pendingPrice: null, pendingPromo: null, submitted: false })),
-      gameId: generateGameId(),
-      quarterStarted: true, // First quarter starts immediately
-    }));
-    setAipInput(INIT_PRICE);
-  }
 
   // Faculty starts the current quarter (enables student timers)
   function startCurrentQuarter() {
@@ -543,7 +533,6 @@ function FacultyDashboard({ onLogout }) {
 
   const tabs = [
     { id: "control", label: "Game Control", icon: Icons.settings },
-    { id: "roster", label: "Roster Upload", icon: Icons.download },
     { id: "leaderboard", label: "Leaderboard", icon: Icons.trophy },
     { id: "scores", label: "Scores & Ranks", icon: Icons.eye },
     { id: "teams", label: "All Teams", icon: Icons.users },
@@ -551,6 +540,151 @@ function FacultyDashboard({ onLogout }) {
     { id: "sheets", label: "Google Sheets", icon: Icons.grid },
   ];
 
+  // ═══════════════════════════════════════════════════════════════════
+  // STEP 1: PRE-GAME SETUP — Generate code or load old game
+  // ═══════════════════════════════════════════════════════════════════
+  if (setupStep === "pregame") {
+    return (
+      <div className="login-wrapper">
+        <div className="login-bg-pattern" />
+        <div className="login-container login-form-container" style={{maxWidth:580}}>
+          <div className="login-brand compact">
+            <div className="brand-icon small">👨‍🏫</div>
+            <h2>Faculty Pre-Game Setup</h2>
+            <p style={{color:"var(--text-secondary)",fontSize:"0.9rem",marginTop:"0.25rem"}}>
+              Start a new simulation or analyse a previous game.
+            </p>
+          </div>
+          <div className="login-form">
+            <div className="setup-option-card">
+              <h3>🆕 Start a New Game</h3>
+              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)",marginBottom:"0.75rem"}}>
+                A unique 8-character code will be generated. Share this with students to join.
+              </p>
+              <div className="game-id-display">
+                <span className="gid-label">Game Code</span>
+                <span className="gid-value">{gameState.gameId}</span>
+                <button type="button" className="btn-push" style={{marginTop:"0.5rem",background:"var(--text-muted)",padding:"0.3rem 0.8rem",fontSize:"0.78rem"}}
+                  onClick={() => setGameState(p => ({...p, gameId: generateGameId()}))}>
+                  Regenerate Code
+                </button>
+              </div>
+              <div className="settings-toggles" style={{marginTop:"1rem"}}>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={gameState.sdPenaltyEnabled}
+                    onChange={e => setGameState(p => ({...p, sdPenaltyEnabled: e.target.checked}))} />
+                  <span>Enable SD Penalty (penalise outlier prices)</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={gameState.allowIndividualPlay}
+                    onChange={e => setGameState(p => ({...p, allowIndividualPlay: e.target.checked}))} />
+                  <span>Allow Individual Play</span>
+                </label>
+              </div>
+              <button className="login-submit faculty-submit" style={{marginTop:"1rem"}} onClick={() => setSetupStep("teams")}>
+                Set Up Teams →
+              </button>
+            </div>
+
+            <div className="setup-option-card" style={{borderColor:"var(--border)",background:"var(--bg-alt)"}}>
+              <h3>📊 Analyse an Older Game</h3>
+              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)",marginBottom:"0.5rem"}}>
+                Enter a previous game code to view its dashboard and data.
+              </p>
+              <div style={{display:"flex",gap:"0.5rem"}}>
+                <input value={loadOldGameId} onChange={e => setLoadOldGameId(e.target.value.toUpperCase())}
+                  placeholder="e.g. A7BF3X2K" maxLength={8} style={{flex:1,fontFamily:"'Courier New',monospace",letterSpacing:"0.1em",textTransform:"uppercase"}} />
+                <button type="button" className="btn-push" disabled={loadOldGameId.length < 8}
+                  onClick={() => { setGameState(p => ({...p, gameId: loadOldGameId, teams: generateDemoTeams()})); setSetupStep("playing"); setTab("analytics"); }}>
+                  Load
+                </button>
+              </div>
+            </div>
+
+            <button type="button" className="back-btn" onClick={onLogout} style={{marginTop:"1rem"}}>← Back to Login</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STEP 2: TEAM SETUP — Upload roster, finalise, start game
+  // ═══════════════════════════════════════════════════════════════════
+  if (setupStep === "teams") {
+    return (
+      <div className="login-wrapper">
+        <div className="login-bg-pattern" />
+        <div className="login-container login-form-container" style={{maxWidth:700}}>
+          <button className="back-btn" onClick={() => setSetupStep("pregame")}>← Back to Setup</button>
+          <div className="login-brand compact">
+            <div className="brand-icon small">👥</div>
+            <h2>Team Assignment</h2>
+            <div className="game-id-display" style={{marginTop:"0.75rem",padding:"0.5rem 0.75rem"}}>
+              <span className="gid-label">Game Code</span>
+              <span className="gid-value" style={{fontSize:"1.3rem"}}>{gameState.gameId}</span>
+            </div>
+          </div>
+          <div className="login-form">
+            <div className="setup-option-card">
+              <h3>Upload Student Roster</h3>
+              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)"}}>
+                Excel file (.xlsx/.csv) with columns: <strong>Name</strong> and <strong>Team</strong>. Optional: Seat, Enrolment.
+              </p>
+              <p style={{fontSize:"0.82rem",color:"var(--text-muted)",marginTop:"0.25rem"}}>
+                Leave Team blank or write "Individual" for solo players. Max 400 students.
+              </p>
+              <div className="roster-upload-row" style={{marginTop:"0.75rem"}}>
+                <input type="file" ref={fileInputRef} accept=".xlsx,.xls,.csv" onChange={handleRosterUpload} style={{display:"none"}} />
+                <button type="button" className="btn-push" onClick={() => fileInputRef.current?.click()}>
+                  <Icon d={Icons.download} size={16} /> Choose File
+                </button>
+                <span className="roster-count">{gameState.teams.length} entries</span>
+              </div>
+              {rosterStatus && <div className={`push-msg ${rosterStatus.type === "ok" ? "ok" : rosterStatus.type === "error" ? "err" : ""}`} style={{marginTop:"0.5rem"}}>{rosterStatus.message}</div>}
+            </div>
+
+            {gameState.teams.length > 0 && (
+              <div className="setup-option-card" style={{maxHeight:280,overflowY:"auto"}}>
+                <h3>Roster — {gameState.teams.filter(t=>!t.isIndividual).length} teams, {gameState.teams.filter(t=>t.isIndividual).length} individuals</h3>
+                <div className="roster-preview">
+                  {gameState.teams.map((t, i) => (
+                    <div className="rp-row" key={t.id}>
+                      <span className="rp-rank">{i+1}</span>
+                      <span className="rp-name">{t.name}</span>
+                      <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
+                      <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {gameState.teams.length === 0 && (
+              <button type="button" className="btn-push" style={{background:"var(--text-muted)",width:"100%"}}
+                onClick={() => { setGameState(p => ({...p, teams: generateDemoTeams()})); setRosterStatus({type:"ok",message:"16 demo teams loaded"}); }}>
+                Load Demo Teams (testing)
+              </button>
+            )}
+
+            <button className="login-submit faculty-submit" style={{marginTop:"1rem"}}
+              disabled={gameState.teams.length === 0}
+              onClick={() => {
+                setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false,
+                  teams: p.teams.map(t => ({...t, quarters:[], pendingPrice:null, pendingPromo:null, submitted:false}))}));
+                setSetupStep("playing"); setTab("control");
+              }}>
+              🚀 Finalise Teams & Enter Game ({gameState.teams.length} participants)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STEP 3: GAME DASHBOARD — Full control room
+  // ═══════════════════════════════════════════════════════════════════
   return (
     <div className="dashboard">
       <nav className="sidebar">
@@ -608,29 +742,6 @@ function FacultyDashboard({ onLogout }) {
                 </div>
               </div>
             </div>
-
-            {/* GAME NOT STARTED YET */}
-            {gameState.status === "setup" && (
-              <div className="control-panel">
-                <div className="control-card" style={{textAlign:"center",padding:"2rem"}}>
-                  <div style={{fontSize:"3rem",marginBottom:"0.5rem"}}>🎮</div>
-                  <h2 style={{marginBottom:"0.5rem"}}>Ready to Start?</h2>
-                  <p className="cc-desc">Upload your roster, configure settings, then start the simulation. A unique Game ID has been generated.</p>
-                  <div className="game-id-display">
-                    <span className="gid-label">Game ID</span>
-                    <span className="gid-value">{gameState.gameId}</span>
-                    <span className="gid-hint">Share this with students</span>
-                  </div>
-                  <button className="advance-btn" onClick={startNewGame} style={{marginTop:"1.5rem"}}>
-                    <Icon d={Icons.play} size={20} />
-                    Start Fresh Game
-                  </button>
-                  <button type="button" className="btn-push" style={{marginTop:"0.75rem",background:"var(--text-muted)"}} onClick={() => setGameState(p => ({...p, gameId: generateGameId()}))}>
-                    Regenerate Game ID
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* GAME ACTIVE — show phase indicator and controls */}
             {(gameState.status === "active" || gameState.status === "waiting") && gameState.currentQuarter <= 12 && (
@@ -692,7 +803,7 @@ function FacultyDashboard({ onLogout }) {
                 <div className="finished-icon">🏁</div>
                 <h2>Simulation Complete</h2>
                 <p>Game <strong>{gameState.gameId}</strong> — All 12 quarters played. Check Leaderboard, Scores, and Analytics for results.</p>
-                <button type="button" className="btn-push" style={{marginTop:"1rem"}} onClick={() => setGameState(p => ({...p, status:"setup", currentQuarter:0, quarterStarted:false}))}>
+                <button type="button" className="btn-push" style={{marginTop:"1rem"}} onClick={() => { setSetupStep("pregame"); setGameState(p => ({...p, status:"setup", currentQuarter:0, quarterStarted:false, gameId: generateGameId(), teams: []})); }}>
                   Set Up New Game
                 </button>
               </div>
@@ -726,57 +837,6 @@ function FacultyDashboard({ onLogout }) {
                   <span>Allow Individual Play — students can join without a team</span>
                 </label>
               </div>
-            </div>
-          </div>
-        )}
-
-        {tab === "roster" && (
-          <div className="page">
-            <div className="page-header">
-              <div><h1>Roster Upload</h1><p className="page-desc">Upload an Excel file with student names and team assignments</p></div>
-            </div>
-            <div className="roster-section">
-              <div className="ss-card">
-                <h3>Upload Student Roster (.xlsx / .xls / .csv)</h3>
-                <p>The Excel file should have columns: <strong>Name</strong> (or StudentName) and <strong>Team</strong> (or TeamName). Optional: Seat, Enrolment.</p>
-                <p style={{marginTop:"0.5rem",fontSize:"0.82rem",color:"var(--text-secondary)"}}>Students with an empty Team column or "Individual" will be added as individual players. Maximum 400 students.</p>
-                <div className="roster-upload-row">
-                  <input type="file" ref={fileInputRef} accept=".xlsx,.xls,.csv" onChange={handleRosterUpload} style={{display:"none"}} />
-                  <button className="btn-push" onClick={() => fileInputRef.current?.click()}>
-                    <Icon d={Icons.download} size={16} /> Choose Excel File
-                  </button>
-                  <span className="roster-count">{gameState.teams.length} teams/individuals loaded</span>
-                </div>
-                {rosterStatus && <div className={`push-msg ${rosterStatus.type === "ok" ? "ok" : rosterStatus.type === "error" ? "err" : ""}`}>{rosterStatus.message}</div>}
-              </div>
-              <div className="ss-card">
-                <h3>Sample Excel Format</h3>
-                <table className="formula-table" style={{fontSize:"0.85rem"}}>
-                  <thead><tr><th>Name</th><th>Team</th><th>Seat</th><th>Enrolment</th></tr></thead>
-                  <tbody>
-                    <tr><td>Rahul Sharma</td><td>Alpha Pricers</td><td>1A</td><td>2026001</td></tr>
-                    <tr><td>Priya Patel</td><td>Alpha Pricers</td><td>1B</td><td>2026002</td></tr>
-                    <tr><td>Amit Kumar</td><td>Beta Margins</td><td>2A</td><td>2026003</td></tr>
-                    <tr><td>Solo Student</td><td><em>(empty or "Individual")</em></td><td>3A</td><td>2026004</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              {gameState.teams.length > 0 && (
-                <div className="ss-card">
-                  <h3>Current Roster ({gameState.teams.length} entries)</h3>
-                  <div className="roster-preview">
-                    {gameState.teams.slice(0, 50).map((t, i) => (
-                      <div className="rp-row" key={t.id}>
-                        <span className="rp-rank">{i+1}</span>
-                        <span className="rp-name">{t.name}</span>
-                        <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
-                        <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
-                      </div>
-                    ))}
-                    {gameState.teams.length > 50 && <p className="roster-more">... and {gameState.teams.length - 50} more</p>}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
