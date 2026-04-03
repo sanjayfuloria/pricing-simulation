@@ -623,11 +623,27 @@ function FacultyDashboard({ onLogout }) {
   };
 
   // Faculty starts the current quarter (enables student timers)
+  // BroadcastChannel for same-browser tab sync (faculty ↔ student)
+  const channelRef = useRef(null);
+  useEffect(() => {
+    channelRef.current = new BroadcastChannel("pricing-sim-" + gameState.gameId);
+    return () => { if (channelRef.current) channelRef.current.close(); };
+  }, [gameState.gameId]);
+
   function startCurrentQuarter() {
     console.log("Faculty: Starting quarter", gameState.currentQuarter, "for game", gameState.gameId);
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
+    // Broadcast to student tabs in same browser
+    if (channelRef.current) {
+      channelRef.current.postMessage({
+        type: "QUARTER_STARTED",
+        quarter: gameState.currentQuarter,
+        aip: aipInput,
+        gameId: gameState.gameId,
+      });
+    }
+    // Also sync to Firebase for cross-device
     if (FIREBASE_ENABLED) {
-      console.log("Firebase: Writing quarterStarted=true, aipInput=", aipInput);
       fbStartQuarter(gameState.gameId, aipInput)
         .then(() => console.log("Firebase: startQuarter success"))
         .catch(e => console.error("Firebase startQuarter error:", e));
@@ -649,6 +665,16 @@ function FacultyDashboard({ onLogout }) {
         updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
       }
       const isFinished = qNum >= 12;
+      // Broadcast to student tabs: quarter processed, waiting for next start
+      if (channelRef.current) {
+        channelRef.current.postMessage({
+          type: "QUARTER_PROCESSED",
+          quarter: qNum,
+          nextQuarter: qNum + 1,
+          gameId: prev.gameId,
+          isFinished,
+        });
+      }
       // Sync to Firebase
       if (FIREBASE_ENABLED) {
         processQuarterResults(prev.gameId, updatedTeams, qNum + 1, newAipHistory, isFinished);
@@ -1428,7 +1454,23 @@ function StudentDashboard({ session, onLogout }) {
   }, [currentQuarter]);
 
   // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
-  // The timer is only started via unlockNextQuarter() (triggered by faculty or Firebase).
+  // The timer is only started via unlockNextQuarter() (triggered by faculty or Firebase or BroadcastChannel).
+
+  // BroadcastChannel: Listen for faculty actions from another tab in the same browser
+  useEffect(() => {
+    if (gamePhase !== "playing" || !session.gameCode) return;
+    const channel = new BroadcastChannel("pricing-sim-" + session.gameCode);
+    channel.onmessage = (event) => {
+      const msg = event.data;
+      console.log("Student: BroadcastChannel message received:", msg);
+      if (msg.type === "QUARTER_STARTED" && msg.gameId === session.gameCode) {
+        console.log("Student: Faculty started quarter via BroadcastChannel! Starting timer.");
+        if (msg.aip != null) setAip(msg.aip);
+        startTimer();
+      }
+    };
+    return () => channel.close();
+  }, [gamePhase, session.gameCode]);
 
   // Listen to Firebase for faculty starting quarters and AIP updates
   const quarterReadyRef = useRef(quarterReady);
