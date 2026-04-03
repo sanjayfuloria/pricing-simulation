@@ -1146,3 +1146,35 @@ textarea { resize: vertical; }
   font-size: 0.78rem; color: var(--text-secondary);
   margin-top: 0.75rem; font-style: italic;
 }
+
+/* ─── QR Code Section ──────────────────────────────────────── */
+.qr-section {
+  display: flex; align-items: center; gap: 1.25rem;
+  margin-top: 1.25rem; padding: 1rem;
+  background: var(--surface);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.qr-section canvas {
+  flex-shrink: 0;
+}
+.qr-info {
+  display: flex; flex-direction: column; gap: 0.2rem;
+}
+.qr-label {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 700;
+  color: var(--text);
+}
+.qr-url {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem; color: var(--green-700);
+  word-break: break-all;
+}
+.qr-hint {
+  font-size: 0.82rem; color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+@media (max-width: 500px) {
+  .qr-section { flex-direction: column; text-align: center; }
+}

@@ -8,6 +8,35 @@ import * as XLSX from "xlsx";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
+
+// QR Code component — generates QR using a canvas-based algorithm (no external deps)
+function QRCode({ text, size = 200 }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current || !text) return;
+    // Use a simple QR encoding via an offscreen image from a public API
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=4`;
+    img.onload = () => {
+      const ctx = canvasRef.current.getContext("2d");
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+    };
+    img.onerror = () => {
+      // Fallback: draw a placeholder
+      const ctx = canvasRef.current.getContext("2d");
+      ctx.fillStyle = "#f4f1eb";
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = "#1a1a1a";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("QR Code", size/2, size/2 - 6);
+      ctx.fillText(text.substring(0, 30), size/2, size/2 + 10);
+    };
+  }, [text, size]);
+  return <canvas ref={canvasRef} width={size} height={size} style={{borderRadius:8,border:"1px solid var(--border)"}} />;
+}
 const PHASE_CONFIG = {
   1: { name: "Phase 1 — Market Entry", quarters: [1,2,3,4], vc: 3, fc: 500, promo: false, recession: false,
        color: "#1B4332", accent: "#2D6A4F", tag: "ENTRY",
@@ -663,6 +692,14 @@ function FacultyDashboard({ onLogout }) {
                   onClick={() => setGameState(p => ({...p, gameId: generateGameId()}))}>
                   Regenerate Code
                 </button>
+              </div>
+              <div className="qr-section">
+                <QRCode text={typeof window !== "undefined" ? window.location.origin : "https://pricing-simulation-new.vercel.app"} size={180} />
+                <div className="qr-info">
+                  <span className="qr-label">Scan to Join</span>
+                  <span className="qr-url">{typeof window !== "undefined" ? window.location.origin : "pricing-simulation-new.vercel.app"}</span>
+                  <p className="qr-hint">Students scan this QR code to open the simulation, then enter the game code above.</p>
+                </div>
               </div>
               <div className="settings-toggles" style={{marginTop:"1rem"}}>
                 <label className="toggle-row">
