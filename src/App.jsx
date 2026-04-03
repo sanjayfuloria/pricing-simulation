@@ -291,18 +291,25 @@ async function pushToSheets(url, payload) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LOGIN SCREEN
+// LOGIN SCREEN — Role selection + Faculty login + Student multi-step wizard
 // ═══════════════════════════════════════════════════════════════════════════
+// Default team IDs when no Excel is uploaded
+const DEFAULT_TEAM_IDS = Array.from({length:100}, (_,i) => `Team ${i+1}`);
+
 function LoginScreen({ onLogin }) {
   const [role, setRole] = useState(null);
   const [facultyPass, setFacultyPass] = useState("");
-  const [teamName, setTeamName] = useState("");
-  const [section, setSection] = useState("");
-  const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
-  const [playMode, setPlayMode] = useState("team"); // "team" or "individual"
-  const [playerName, setPlayerName] = useState("");
-  const [members, setMembers] = useState([{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""}]);
+
+  // Student wizard steps: "gameId" → "teamSelect" → "teamDetails"
+  const [studentStep, setStudentStep] = useState("gameId");
+  const [gameCode, setGameCode] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [members, setMembers] = useState([{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""}]);
+  // Available team IDs (populated from game data or default)
+  const [availableTeams, setAvailableTeams] = useState(DEFAULT_TEAM_IDS);
+  const [isIndividual, setIsIndividual] = useState(false);
 
   const updateMember = (i, f, v) => { const c=[...members]; c[i]={...c[i],[f]:v}; setMembers(c); };
 
@@ -311,20 +318,38 @@ function LoginScreen({ onLogin }) {
     else { setError("Invalid faculty password"); }
   };
 
-  const handleStudentLogin = () => {
-    if (playMode === "individual") {
-      if (!playerName.trim()) { setError("Your name is required"); return; }
-      onLogin({ role: "student", teamName: playerName.trim(), section: section.trim(),
-                members: [{ name: playerName.trim(), seat: "", enrol: "" }],
-                gameCode: gameCode.trim(), isIndividual: true });
-    } else {
-      if (!teamName.trim()) { setError("Team name is required"); return; }
-      if (!section.trim()) { setError("Section is required"); return; }
-      if (!members[0].name.trim()) { setError("At least one member name required"); return; }
-      onLogin({ role: "student", teamName: teamName.trim(), section: section.trim(), members, gameCode: gameCode.trim(), isIndividual: false });
-    }
+  const handleGameCodeSubmit = () => {
+    const code = gameCode.trim().toUpperCase();
+    if (code.length !== 8) { setError("Please enter a valid 8-character simulation code"); return; }
+    setError("");
+    // In a real app, this would fetch team list from server/firebase by game ID.
+    // For now, we use the default list. Faculty-uploaded teams would be synced here.
+    setStudentStep("teamSelect");
   };
 
+  const handleTeamSelect = () => {
+    if (!selectedTeamId) { setError("Please select a team or individual slot"); return; }
+    setError("");
+    setTeamName(selectedTeamId);
+    setStudentStep("teamDetails");
+  };
+
+  const handleTeamDetailsSubmit = () => {
+    if (!teamName.trim()) { setError("Team name is required"); return; }
+    if (!members[0].name.trim()) { setError("At least one member name is required"); return; }
+    setError("");
+    onLogin({
+      role: "student",
+      teamName: teamName.trim(),
+      section: "",
+      members: members.filter(m => m.name.trim()),
+      gameCode: gameCode.trim().toUpperCase(),
+      isIndividual,
+      selectedTeamId,
+    });
+  };
+
+  // ─── Role selection ──────────────────────────────────────
   if (!role) {
     return (
       <div className="login-wrapper">
@@ -342,7 +367,7 @@ function LoginScreen({ onLogin }) {
               <span className="role-title">Faculty Portal</span>
               <span className="role-desc">Manage games, view all teams, control rounds</span>
             </button>
-            <button className="role-btn student-btn" onClick={() => { setRole("student"); setError(""); }}>
+            <button className="role-btn student-btn" onClick={() => { setRole("student"); setStudentStep("gameId"); setError(""); }}>
               <div className="role-icon">👩‍🎓</div>
               <span className="role-title">Student Portal</span>
               <span className="role-desc">Join a game, set prices, compete with teams</span>
@@ -356,6 +381,7 @@ function LoginScreen({ onLogin }) {
     );
   }
 
+  // ─── Faculty login ───────────────────────────────────────
   if (role === "faculty") {
     return (
       <div className="login-wrapper">
@@ -381,64 +407,117 @@ function LoginScreen({ onLogin }) {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // STUDENT WIZARD — Step 1: Enter Game ID
+  // ═══════════════════════════════════════════════════════════════════
+  if (studentStep === "gameId") {
+    return (
+      <div className="login-wrapper">
+        <div className="login-bg-pattern" />
+        <div className="login-container login-form-container">
+          <button className="back-btn" onClick={() => setRole(null)}>← Back</button>
+          <div className="login-brand compact">
+            <div className="brand-icon small">🔑</div>
+            <h2>Enter Simulation Code</h2>
+            <p style={{color:"var(--text-secondary)",fontSize:"0.9rem",marginTop:"0.25rem"}}>
+              Your faculty will share an 8-character code to join the simulation.
+            </p>
+          </div>
+          <div className="login-form">
+            <div className="form-field">
+              <label>Simulation Code *</label>
+              <input value={gameCode} onChange={e => setGameCode(e.target.value.toUpperCase())}
+                placeholder="e.g. A7BF3X2K" maxLength={8} autoFocus
+                style={{fontFamily:"'Courier New',monospace",fontSize:"1.4rem",letterSpacing:"0.15em",textAlign:"center",textTransform:"uppercase"}}
+                onKeyDown={e => e.key === "Enter" && handleGameCodeSubmit()} />
+              <span style={{fontSize:"0.78rem",color:"var(--text-muted)",marginTop:"0.25rem",display:"block",textAlign:"center"}}>{gameCode.length}/8 characters</span>
+            </div>
+            {error && <div className="login-error">{error}</div>}
+            <button className="login-submit student-submit" onClick={handleGameCodeSubmit}
+              disabled={gameCode.trim().length !== 8}>
+              Join Game →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STUDENT WIZARD — Step 2: Select Team from dropdown
+  // ═══════════════════════════════════════════════════════════════════
+  if (studentStep === "teamSelect") {
+    return (
+      <div className="login-wrapper">
+        <div className="login-bg-pattern" />
+        <div className="login-container login-form-container">
+          <button className="back-btn" onClick={() => setStudentStep("gameId")}>← Back</button>
+          <div className="login-brand compact">
+            <div className="brand-icon small">👥</div>
+            <h2>Select Your Team</h2>
+            <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.6rem"}}>
+              <span className="gid-label">Game</span>
+              <span className="gid-value" style={{fontSize:"1.1rem"}}>{gameCode.toUpperCase()}</span>
+            </div>
+          </div>
+          <div className="login-form">
+            <div className="form-field">
+              <label>Choose your team / slot *</label>
+              <select value={selectedTeamId} onChange={e => {
+                setSelectedTeamId(e.target.value);
+                setIsIndividual(e.target.value.toLowerCase().startsWith("individual"));
+              }} style={{fontSize:"0.95rem",padding:"0.6rem 0.75rem"}}>
+                <option value="">— Select —</option>
+                {availableTeams.map((t, i) => (
+                  <option key={i} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            {error && <div className="login-error">{error}</div>}
+            <button className="login-submit student-submit" onClick={handleTeamSelect}
+              disabled={!selectedTeamId}>
+              Continue →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STUDENT WIZARD — Step 3: Team Details (name + up to 5 members)
+  // ═══════════════════════════════════════════════════════════════════
   return (
     <div className="login-wrapper">
       <div className="login-bg-pattern" />
       <div className="login-container login-form-container student-form">
-        <button className="back-btn" onClick={() => setRole(null)}>← Back</button>
+        <button className="back-btn" onClick={() => setStudentStep("teamSelect")}>← Back</button>
         <div className="login-brand compact">
-          <div className="brand-icon small">👩‍🎓</div>
-          <h2>Join Simulation</h2>
+          <div className="brand-icon small">📝</div>
+          <h2>Team Details</h2>
+          <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.6rem"}}>
+            <span className="gid-label">Game {gameCode.toUpperCase()} • {selectedTeamId}</span>
+          </div>
         </div>
         <div className="login-form">
-          <div className="play-mode-toggle">
-            <button className={`pmt-btn ${playMode === "team" ? "active" : ""}`} onClick={() => setPlayMode("team")}>🤝 Team Play</button>
-            <button className={`pmt-btn ${playMode === "individual" ? "active" : ""}`} onClick={() => setPlayMode("individual")}>👤 Individual Play</button>
-          </div>
-
-          {playMode === "individual" ? (
-            <>
-              <div className="form-field">
-                <label>Your Name *</label>
-                <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="e.g. Rahul Sharma" autoFocus />
-              </div>
-              <div className="form-field">
-                <label>Section <span className="optional">(optional)</span></label>
-                <input value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. Section A" />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="form-row-2">
-                <div className="form-field">
-                  <label>Team Name *</label>
-                  <input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="e.g. Alpha Pricers" autoFocus />
-                </div>
-                <div className="form-field">
-                  <label>Section *</label>
-                  <input value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. Section A" />
-                </div>
-              </div>
-              <div className="members-section">
-                <label className="section-label">Team Members</label>
-                {members.map((m, i) => (
-                  <div className="member-row" key={i}>
-                    <span className="member-num">{i+1}</span>
-                    <input placeholder="Name" value={m.name} onChange={e => updateMember(i, "name", e.target.value)} />
-                    <input placeholder="Seat" value={m.seat} onChange={e => updateMember(i, "seat", e.target.value)} className="short" />
-                    <input placeholder="Enrolment #" value={m.enrol} onChange={e => updateMember(i, "enrol", e.target.value)} />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
           <div className="form-field">
-            <label>Game Code <span className="optional">(if provided by faculty)</span></label>
-            <input value={gameCode} onChange={e => setGameCode(e.target.value)} placeholder="e.g. GAME-2026" />
+            <label>Team Name *</label>
+            <input value={teamName} onChange={e => setTeamName(e.target.value)}
+              placeholder="Give your team a creative name" autoFocus />
+          </div>
+          <div className="members-section">
+            <label className="section-label">Team Members (up to 5)</label>
+            {members.map((m, i) => (
+              <div className="member-row" key={i}>
+                <span className="member-num">{i+1}</span>
+                <input placeholder={i === 0 ? "Name *" : "Name"} value={m.name} onChange={e => updateMember(i, "name", e.target.value)} />
+                <input placeholder="Enrolment #" value={m.enrol} onChange={e => updateMember(i, "enrol", e.target.value)} />
+              </div>
+            ))}
           </div>
           {error && <div className="login-error">{error}</div>}
-          <button className="login-submit student-submit" onClick={handleStudentLogin}>
-            {playMode === "individual" ? "Join as Individual" : "Join as Team"}
+          <button className="login-submit student-submit" onClick={handleTeamDetailsSubmit}>
+            Continue to Strategy →
           </button>
         </div>
       </div>
@@ -1258,15 +1337,29 @@ function StudentDashboard({ session, onLogout }) {
     return (
       <div className="login-wrapper">
         <div className="login-bg-pattern" />
-        <div className="login-container login-form-container student-form" style={{maxWidth:600}}>
+        <div className="login-container login-form-container student-form" style={{maxWidth:620}}>
           <div className="login-brand compact">
             <div className="brand-icon small">📋</div>
-            <h2>Pre-Game: Pricing Strategy</h2>
-            <p style={{color:"var(--text-secondary)",fontSize:"0.9rem",marginTop:"0.25rem"}}>
-              Before the simulation begins, outline your team's pricing strategy for the next 3 years.
-            </p>
+            <h2>Game Details & Strategy</h2>
           </div>
+
+          {/* Game Info Summary */}
+          <div className="setup-option-card" style={{marginBottom:"0.75rem",background:"var(--bg-alt)"}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"1rem",fontSize:"0.88rem"}}>
+              <div><span style={{fontWeight:700,color:"var(--text-muted)",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:"0.06em",display:"block"}}>Game Code</span><span style={{fontFamily:"'Courier New',monospace",fontWeight:700,color:"var(--amber-600)"}}>{session.gameCode}</span></div>
+              <div><span style={{fontWeight:700,color:"var(--text-muted)",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:"0.06em",display:"block"}}>Team</span>{session.teamName}</div>
+              <div><span style={{fontWeight:700,color:"var(--text-muted)",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:"0.06em",display:"block"}}>Members</span>{session.members?.filter(m=>m.name).map(m=>m.name).join(", ") || "—"}</div>
+            </div>
+            <div style={{marginTop:"0.75rem",fontSize:"0.85rem",color:"var(--text-secondary)"}}>
+              <strong>About the game:</strong> You run a food canteen for the government. Over 12 quarters (3 phases), you set meal prices to maximise profit.
+              Phase 1 is market entry, Phase 2 adds promotions, Phase 3 introduces a recession with higher costs.
+            </div>
+          </div>
+
           <div className="login-form">
+            <p style={{color:"var(--text-secondary)",fontSize:"0.9rem",marginBottom:"0.75rem"}}>
+              Before the simulation begins, outline your pricing strategy for the next 3 years.
+            </p>
             <div className="form-field">
               <label>Overall Generic Strategy *</label>
               <textarea rows={3} value={strategy.generic} onChange={e => setStrategy(p => ({...p, generic: e.target.value}))} placeholder="e.g. Penetration pricing to gain market share, then gradually increase..." />
@@ -1286,7 +1379,7 @@ function StudentDashboard({ session, onLogout }) {
             <button className="login-submit student-submit"
               onClick={() => { if (!strategy.generic.trim()) return; setGamePhase("playing"); }}
               disabled={!strategy.generic.trim()}>
-              Start Simulation →
+              Enter Simulation →
             </button>
             {!strategy.generic.trim() && <p className="login-hint">Fill in at least the generic strategy to proceed</p>}
           </div>
