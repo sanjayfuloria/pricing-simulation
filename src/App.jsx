@@ -1459,52 +1459,40 @@ function StudentDashboard({ session, onLogout }) {
   const timerRunningRef = useRef(timerRunning);
   quarterReadyRef.current = quarterReady;
   timerRunningRef.current = timerRunning;
-  const [debugInfo, setDebugInfo] = useState("Initializing sync...");
+  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
-    if (gamePhase !== "playing") {
-      setDebugInfo("gamePhase=" + gamePhase + " (not playing yet)");
-      return;
-    }
-    if (!session.gameCode) {
-      setDebugInfo("ERROR: session.gameCode is empty!");
-      return;
-    }
+    if (gamePhase !== "playing") return;
+    if (!session.gameCode) return;
     const gameCode = session.gameCode;
     const firebaseUrl = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + gameCode + "/meta.json";
     const storageKey = "pricing-sim-" + gameCode;
     let cancelled = false;
-    setDebugInfo("Polling Firebase for code=" + gameCode);
 
     const checkForQuarterStart = async () => {
       if (cancelled || quarterReadyRef.current || timerRunningRef.current) return;
 
-      // Method 1: Check Firebase REST API directly
+      // Check Firebase REST API directly
       try {
         const res = await fetch(firebaseUrl);
         if (res.ok) {
           const meta = await res.json();
           if (meta && meta.quarterStarted) {
-            setDebugInfo("✅ STARTING! code=" + gameCode + " AIP=" + meta.aipInput);
             if (meta.aipInput != null) setAip(meta.aipInput);
             startTimer();
             return;
           }
-          setDebugInfo("⏳ code=" + gameCode + " started=" + (meta?.quarterStarted || false) + " status=" + (meta?.status || "?") + " | " + new Date().toLocaleTimeString());
-        } else {
-          setDebugInfo("❌ HTTP " + res.status + " code=" + gameCode + " url=" + firebaseUrl.substring(0, 60));
         }
       } catch (e) {
-        setDebugInfo("❌ fetch err: " + e.message + " code=" + gameCode);
+        // Firebase fetch failed, try localStorage
       }
 
-      // Method 2: Check localStorage (same-browser fallback)
+      // Fallback: Check localStorage (same-browser)
       try {
         const raw = localStorage.getItem(storageKey);
         if (raw) {
           const msg = JSON.parse(raw);
           if (msg.type === "QUARTER_STARTED") {
-            setDebugInfo("localStorage: Quarter started! AIP=" + msg.aip);
             if (msg.aip != null) setAip(msg.aip);
             startTimer();
             return;
@@ -1711,13 +1699,12 @@ function StudentDashboard({ session, onLogout }) {
                   <div className="timer-progress" style={{width: `${timerPct}%`, background: timerColor}} />
                   <div className="timer-content">
                     <span className="timer-label">
-                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process... [" + (session.gameCode || "no code") + "]")}
+                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process...")}
                     </span>
                     <span className="timer-display" style={{color: timerColor}}>
                       {timerRunning ? formatTimer(timerSeconds) : (quarterReady ? "0:00" : "⏳")}
                     </span>
                   </div>
-                  {debugInfo && <div style={{padding:"0.25rem 1rem",fontSize:"0.68rem",color:"#999",fontFamily:"monospace",borderTop:"1px solid #eee"}}>{debugInfo}</div>}
                 </div>
 
                 <div className="play-grid">
@@ -1798,13 +1785,9 @@ function StudentDashboard({ session, onLogout }) {
                     <div>
                       <h3>Waiting for Faculty to Start Q{currentQuarter}</h3>
                       <p>{quarters.length === 0
-                        ? "The faculty will start the simulation shortly. Your timer will begin when the faculty clicks 'Start Quarter'."
-                        : `The faculty needs to process Q${quarters.length} results before Q${currentQuarter} can begin. The timer will start when the faculty advances the quarter.`}</p>
-                      {debugInfo && <p style={{fontSize:"0.72rem",color:"var(--text-muted)",marginTop:"0.5rem",fontFamily:"monospace",wordBreak:"break-all"}}>Debug: {debugInfo}</p>}
+                        ? "The faculty will start the simulation shortly. Your timer will begin automatically when the faculty clicks 'Start Quarter'."
+                        : `The faculty needs to process Q${quarters.length} results before Q${currentQuarter} can begin. The timer will start automatically.`}</p>
                     </div>
-                    <button className="btn-push" style={{marginLeft:"auto",whiteSpace:"nowrap"}} onClick={unlockNextQuarter}>
-                      Simulate Faculty Start
-                    </button>
                   </div>
                 )}
 
