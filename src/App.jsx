@@ -1459,14 +1459,22 @@ function StudentDashboard({ session, onLogout }) {
   const timerRunningRef = useRef(timerRunning);
   quarterReadyRef.current = quarterReady;
   timerRunningRef.current = timerRunning;
-  const [debugInfo, setDebugInfo] = useState("");
+  const [debugInfo, setDebugInfo] = useState("Initializing sync...");
 
   useEffect(() => {
-    if (gamePhase !== "playing" || !session.gameCode) return;
+    if (gamePhase !== "playing") {
+      setDebugInfo("gamePhase=" + gamePhase + " (not playing yet)");
+      return;
+    }
+    if (!session.gameCode) {
+      setDebugInfo("ERROR: session.gameCode is empty!");
+      return;
+    }
     const gameCode = session.gameCode;
     const firebaseUrl = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + gameCode + "/meta.json";
     const storageKey = "pricing-sim-" + gameCode;
     let cancelled = false;
+    setDebugInfo("Polling Firebase for code=" + gameCode);
 
     const checkForQuarterStart = async () => {
       if (cancelled || quarterReadyRef.current || timerRunningRef.current) return;
@@ -1703,7 +1711,7 @@ function StudentDashboard({ session, onLogout }) {
                   <div className="timer-progress" style={{width: `${timerPct}%`, background: timerColor}} />
                   <div className="timer-content">
                     <span className="timer-label">
-                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process...")}
+                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process... [" + (session.gameCode || "no code") + "]")}
                     </span>
                     <span className="timer-display" style={{color: timerColor}}>
                       {timerRunning ? formatTimer(timerSeconds) : (quarterReady ? "0:00" : "⏳")}
