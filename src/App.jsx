@@ -1477,17 +1477,17 @@ function StudentDashboard({ session, onLogout }) {
         if (res.ok) {
           const meta = await res.json();
           if (meta && meta.quarterStarted) {
-            setDebugInfo("Firebase: Quarter started! AIP=" + meta.aipInput);
+            setDebugInfo("✅ STARTING! code=" + gameCode + " AIP=" + meta.aipInput);
             if (meta.aipInput != null) setAip(meta.aipInput);
             startTimer();
             return;
           }
-          setDebugInfo("Firebase: quarterStarted=" + (meta?.quarterStarted || false) + " | " + new Date().toLocaleTimeString());
+          setDebugInfo("⏳ code=" + gameCode + " started=" + (meta?.quarterStarted || false) + " status=" + (meta?.status || "?") + " | " + new Date().toLocaleTimeString());
         } else {
-          setDebugInfo("Firebase: HTTP " + res.status + " | trying localStorage...");
+          setDebugInfo("❌ HTTP " + res.status + " code=" + gameCode + " url=" + firebaseUrl.substring(0, 60));
         }
       } catch (e) {
-        setDebugInfo("Firebase fetch error: " + e.message + " | trying localStorage...");
+        setDebugInfo("❌ fetch err: " + e.message + " code=" + gameCode);
       }
 
       // Method 2: Check localStorage (same-browser fallback)
@@ -1709,6 +1709,7 @@ function StudentDashboard({ session, onLogout }) {
                       {timerRunning ? formatTimer(timerSeconds) : (quarterReady ? "0:00" : "⏳")}
                     </span>
                   </div>
+                  {debugInfo && <div style={{padding:"0.25rem 1rem",fontSize:"0.68rem",color:"#999",fontFamily:"monospace",borderTop:"1px solid #eee"}}>{debugInfo}</div>}
                 </div>
 
                 <div className="play-grid">
