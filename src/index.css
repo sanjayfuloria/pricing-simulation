@@ -800,3 +800,89 @@ textarea { resize: vertical; }
   .lb-header-row > :nth-child(n+6), .lb-row > :nth-child(n+6) { display: none; }
   .fc-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEW FEATURES: Play Mode Toggle, Roster, Settings, Scores
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Play Mode Toggle ─────────────────────────────────────────── */
+.play-mode-toggle {
+  display: flex; gap: 0.5rem; margin-bottom: 1rem;
+}
+.pmt-btn {
+  flex: 1; padding: 0.75rem; border: 2px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; color: var(--text-secondary);
+  text-align: center;
+}
+.pmt-btn.active {
+  border-color: var(--green-700); color: var(--green-800);
+  background: var(--green-50);
+}
+.pmt-btn:hover:not(.active) { border-color: var(--border-strong); }
+
+/* ─── Settings Toggles ────────────────────────────────────────── */
+.settings-toggles { display: flex; flex-direction: column; gap: 0.75rem; }
+.toggle-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  font-size: 0.9rem; cursor: pointer;
+}
+.toggle-row input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--green-700); cursor: pointer;
+}
+
+/* ─── Roster Upload ────────────────────────────────────────────── */
+.roster-section { display: flex; flex-direction: column; gap: 1rem; }
+.roster-upload-row {
+  display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem;
+}
+.roster-count {
+  font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+}
+.roster-preview { max-height: 400px; overflow-y: auto; }
+.rp-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.rp-rank {
+  width: 2rem; text-align: center; font-weight: 700;
+  color: var(--text-muted); font-size: 0.82rem;
+}
+.rp-name { font-weight: 600; min-width: 120px; }
+.rp-type {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px;
+}
+.rp-type.team { background: var(--green-100); color: var(--green-800); }
+.rp-type.ind { background: var(--purple-100); color: var(--purple-800); }
+.rp-members { color: var(--text-secondary); font-size: 0.82rem; }
+.roster-more {
+  text-align: center; padding: 0.75rem; color: var(--text-muted);
+  font-size: 0.85rem; font-style: italic;
+}
+
+/* ─── Scores & Rankings ────────────────────────────────────────── */
+.score-weights {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+}
+.sw-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.sw-pct {
+  font-weight: 700; font-size: 0.75rem;
+  background: var(--green-100); color: var(--green-800);
+  padding: 0.15rem 0.45rem; border-radius: 6px;
+  font-family: var(--font-body);
+}
+.sw-label { color: var(--text-secondary); }
+
+.highlight-row { background: var(--green-50) !important; }
+.highlight-row td:first-child { color: var(--green-800); }
+
+/* ─── Leaderboard type column ──────────────────────────────────── */
+.lb-type {
+  width: 3rem; text-align: center; font-size: 1.1rem;
+}

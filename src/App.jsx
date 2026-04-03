@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import * as XLSX from "xlsx";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PRICING SIMULATION PLATFORM — B2B Marketing, IBS Hyderabad
    Multi-user competitive pricing game with Faculty & Student portals
+   Features: Excel roster upload, individual/team play, SD penalty, scoring
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
@@ -64,6 +66,148 @@ function simulateQuarter(price, avgComp, phase, promo, prevData) {
 
 const fmt = v => v == null || isNaN(v) ? "—" : "₹" + Number(v).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtD = v => v == null || isNaN(v) ? "—" : "₹" + Number(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ─── EXCEL ROSTER PARSING ──────────────────────────────────────────────────
+function parseRosterExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        // Expect columns: StudentName (or Name), TeamName (or Team), Seat, Enrolment (or EnrolmentNumber or Roll)
+        const roster = rows.map(r => ({
+          name: r.StudentName || r.Name || r.name || r.Student || r["Student Name"] || "",
+          team: r.TeamName || r.Team || r.team || r["Team Name"] || "",
+          seat: r.Seat || r.seat || r.SeatNo || "",
+          enrol: r.Enrolment || r.enrol || r.EnrolmentNumber || r.Roll || r["Enrolment Number"] || r["Roll Number"] || "",
+        })).filter(r => r.name.trim());
+        resolve(roster);
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function rosterToTeams(roster, allowIndividual = false) {
+  const teamMap = {};
+  const individuals = [];
+  roster.forEach(r => {
+    const teamName = r.team.trim();
+    if (!teamName || (allowIndividual && teamName.toLowerCase() === "individual")) {
+      individuals.push(r);
+    } else {
+      if (!teamMap[teamName]) teamMap[teamName] = [];
+      teamMap[teamName].push(r);
+    }
+  });
+  let id = 0;
+  const teams = Object.entries(teamMap).map(([name, members]) => ({
+    id: `team-${id++}`, name, section: "",
+    members: members.map(m => ({ name: m.name, seat: m.seat, enrol: m.enrol })),
+    quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
+    isIndividual: false,
+  }));
+  // Add individual players as solo "teams"
+  individuals.forEach(r => {
+    teams.push({
+      id: `ind-${id++}`, name: r.name, section: "",
+      members: [{ name: r.name, seat: r.seat, enrol: r.enrol }],
+      quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
+      isIndividual: true,
+    });
+  });
+  return teams;
+}
+
+// ─── STANDARD DEVIATION PENALTY ────────────────────────────────────────────
+function calcStdDev(values) {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function applySDPenalty(teams, quarterIndex, penaltyEnabled = true) {
+  // Get all prices for this quarter
+  const prices = teams.map(t => t.quarters[quarterIndex]?.price).filter(p => p != null);
+  if (prices.length < 3 || !penaltyEnabled) return teams;
+
+  const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const sd = calcStdDev(prices);
+  if (sd === 0) return teams;
+
+  return teams.map(t => {
+    const q = t.quarters[quarterIndex];
+    if (!q) return t;
+    const zScore = Math.abs(q.price - mean) / sd;
+    let penalty = 0;
+    if (zScore > 2) penalty = q.profit * 0.20; // 20% profit penalty for extreme outliers
+    else if (zScore > 1.5) penalty = q.profit * 0.10; // 10% for moderate outliers
+    const updatedQ = { ...q, sdPenalty: Math.round(penalty), zScore: +zScore.toFixed(2),
+                        adjustedProfit: Math.round(q.profit - Math.abs(penalty)) };
+    const newQuarters = [...t.quarters];
+    newQuarters[quarterIndex] = updatedQ;
+    return { ...t, quarters: newQuarters };
+  });
+}
+
+// ─── COMPOSITE SCORING INDEX ───────────────────────────────────────────────
+function calcScores(teams) {
+  if (!teams.length || !teams[0].quarters.length) return teams.map(t => ({ ...t, score: 0, rank: 0 }));
+
+  // Component metrics for each team
+  const metrics = teams.map(t => {
+    const qs = t.quarters;
+    const totProfit = qs.reduce((s, q) => s + (q.adjustedProfit ?? q.profit), 0);
+    const totRevenue = qs.reduce((s, q) => s + q.revenue, 0);
+    const totSales = qs.reduce((s, q) => s + q.totalSales, 0);
+    // Consistency: lower std dev of profits = more consistent
+    const profitValues = qs.map(q => q.adjustedProfit ?? q.profit);
+    const profitSD = calcStdDev(profitValues);
+    // Penalty count
+    const totalPenalties = qs.reduce((s, q) => s + (q.sdPenalty ? 1 : 0), 0);
+    // Growth: compare last 4 quarters profit to first 4
+    const early = qs.slice(0, 4).reduce((s, q) => s + (q.adjustedProfit ?? q.profit), 0);
+    const late = qs.slice(-4).reduce((s, q) => s + (q.adjustedProfit ?? q.profit), 0);
+    const growth = early !== 0 ? (late - early) / Math.abs(early) : 0;
+
+    return { team: t, totProfit, totRevenue, totSales, profitSD, totalPenalties, growth };
+  });
+
+  // Normalize each metric to 0–100 using min-max
+  const normalize = (arr, key, invert = false) => {
+    const vals = arr.map(m => m[key]);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const range = max - min || 1;
+    return arr.map(m => {
+      const norm = ((m[key] - min) / range) * 100;
+      return invert ? 100 - norm : norm;
+    });
+  };
+
+  const nProfit = normalize(metrics, "totProfit");
+  const nRevenue = normalize(metrics, "totRevenue");
+  const nSales = normalize(metrics, "totSales");
+  const nConsistency = normalize(metrics, "profitSD", true); // lower SD = better
+  const nPenalties = normalize(metrics, "totalPenalties", true); // fewer = better
+  const nGrowth = normalize(metrics, "growth");
+
+  // Weighted composite: Profit 35%, Revenue 15%, Sales 15%, Consistency 15%, Penalties 10%, Growth 10%
+  const scored = metrics.map((m, i) => {
+    const composite = nProfit[i] * 0.35 + nRevenue[i] * 0.15 + nSales[i] * 0.15 +
+                      nConsistency[i] * 0.15 + nPenalties[i] * 0.10 + nGrowth[i] * 0.10;
+    return { ...m.team, score: +composite.toFixed(1), totProfit: m.totProfit, totRevenue: m.totRevenue,
+             totSales: m.totSales, penalties: m.totalPenalties, growth: +(m.growth * 100).toFixed(1) };
+  });
+
+  // Sort by score descending and assign ranks
+  scored.sort((a, b) => b.score - a.score);
+  scored.forEach((t, i) => { t.rank = i + 1; });
+  return scored;
+}
 
 // ─── ICONS (inline SVG) ─────────────────────────────────────────────────────
 const Icon = ({ d, size = 18, color = "currentColor" }) => (
@@ -156,6 +300,8 @@ function LoginScreen({ onLogin }) {
   const [section, setSection] = useState("");
   const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
+  const [playMode, setPlayMode] = useState("team"); // "team" or "individual"
+  const [playerName, setPlayerName] = useState("");
   const [members, setMembers] = useState([{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""},{name:"",seat:"",enrol:""}]);
 
   const updateMember = (i, f, v) => { const c=[...members]; c[i]={...c[i],[f]:v}; setMembers(c); };
@@ -166,10 +312,17 @@ function LoginScreen({ onLogin }) {
   };
 
   const handleStudentLogin = () => {
-    if (!teamName.trim()) { setError("Team name is required"); return; }
-    if (!section.trim()) { setError("Section is required"); return; }
-    if (!members[0].name.trim()) { setError("At least one member name required"); return; }
-    onLogin({ role: "student", teamName: teamName.trim(), section: section.trim(), members, gameCode: gameCode.trim() });
+    if (playMode === "individual") {
+      if (!playerName.trim()) { setError("Your name is required"); return; }
+      onLogin({ role: "student", teamName: playerName.trim(), section: section.trim(),
+                members: [{ name: playerName.trim(), seat: "", enrol: "" }],
+                gameCode: gameCode.trim(), isIndividual: true });
+    } else {
+      if (!teamName.trim()) { setError("Team name is required"); return; }
+      if (!section.trim()) { setError("Section is required"); return; }
+      if (!members[0].name.trim()) { setError("At least one member name required"); return; }
+      onLogin({ role: "student", teamName: teamName.trim(), section: section.trim(), members, gameCode: gameCode.trim(), isIndividual: false });
+    }
   };
 
   if (!role) {
@@ -196,7 +349,7 @@ function LoginScreen({ onLogin }) {
             </button>
           </div>
           <div className="login-footer-text">
-            <p>Supports up to 200 concurrent teams • Real-time leaderboard • Google Sheets export</p>
+            <p>Supports up to 400 concurrent students • Individual or Team play • Real-time leaderboard • Google Sheets export</p>
           </div>
         </div>
       </div>
@@ -235,36 +388,58 @@ function LoginScreen({ onLogin }) {
         <button className="back-btn" onClick={() => setRole(null)}>← Back</button>
         <div className="login-brand compact">
           <div className="brand-icon small">👩‍🎓</div>
-          <h2>Team Registration</h2>
+          <h2>Join Simulation</h2>
         </div>
         <div className="login-form">
-          <div className="form-row-2">
-            <div className="form-field">
-              <label>Team Name *</label>
-              <input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="e.g. Alpha Pricers" autoFocus />
-            </div>
-            <div className="form-field">
-              <label>Section *</label>
-              <input value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. Section A" />
-            </div>
+          <div className="play-mode-toggle">
+            <button className={`pmt-btn ${playMode === "team" ? "active" : ""}`} onClick={() => setPlayMode("team")}>🤝 Team Play</button>
+            <button className={`pmt-btn ${playMode === "individual" ? "active" : ""}`} onClick={() => setPlayMode("individual")}>👤 Individual Play</button>
           </div>
+
+          {playMode === "individual" ? (
+            <>
+              <div className="form-field">
+                <label>Your Name *</label>
+                <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="e.g. Rahul Sharma" autoFocus />
+              </div>
+              <div className="form-field">
+                <label>Section <span className="optional">(optional)</span></label>
+                <input value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. Section A" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-row-2">
+                <div className="form-field">
+                  <label>Team Name *</label>
+                  <input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="e.g. Alpha Pricers" autoFocus />
+                </div>
+                <div className="form-field">
+                  <label>Section *</label>
+                  <input value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. Section A" />
+                </div>
+              </div>
+              <div className="members-section">
+                <label className="section-label">Team Members</label>
+                {members.map((m, i) => (
+                  <div className="member-row" key={i}>
+                    <span className="member-num">{i+1}</span>
+                    <input placeholder="Name" value={m.name} onChange={e => updateMember(i, "name", e.target.value)} />
+                    <input placeholder="Seat" value={m.seat} onChange={e => updateMember(i, "seat", e.target.value)} className="short" />
+                    <input placeholder="Enrolment #" value={m.enrol} onChange={e => updateMember(i, "enrol", e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <div className="form-field">
             <label>Game Code <span className="optional">(if provided by faculty)</span></label>
             <input value={gameCode} onChange={e => setGameCode(e.target.value)} placeholder="e.g. GAME-2026" />
           </div>
-          <div className="members-section">
-            <label className="section-label">Team Members</label>
-            {members.map((m, i) => (
-              <div className="member-row" key={i}>
-                <span className="member-num">{i+1}</span>
-                <input placeholder="Name" value={m.name} onChange={e => updateMember(i, "name", e.target.value)} />
-                <input placeholder="Seat" value={m.seat} onChange={e => updateMember(i, "seat", e.target.value)} className="short" />
-                <input placeholder="Enrolment #" value={m.enrol} onChange={e => updateMember(i, "enrol", e.target.value)} />
-              </div>
-            ))}
-          </div>
           {error && <div className="login-error">{error}</div>}
-          <button className="login-submit student-submit" onClick={handleStudentLogin}>Join Simulation</button>
+          <button className="login-submit student-submit" onClick={handleStudentLogin}>
+            {playMode === "individual" ? "Join as Individual" : "Join as Team"}
+          </button>
         </div>
       </div>
     </div>
@@ -278,41 +453,63 @@ function FacultyDashboard({ onLogout }) {
   const [tab, setTab] = useState("control");
   const [gameState, setGameState] = useState({
     currentQuarter: 1, status: "waiting", aipHistory: [],
-    teams: generateDemoTeams(), sheetsUrl: "", gameCode: "GAME-2026"
+    teams: generateDemoTeams(), sheetsUrl: "", gameCode: "GAME-2026",
+    sdPenaltyEnabled: true, allowIndividualPlay: true,
   });
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
+  const [rosterStatus, setRosterStatus] = useState(null);
+  const fileInputRef = useRef(null);
 
   const currentPhase = getPhase(gameState.currentQuarter);
   const cfg = PHASE_CONFIG[currentPhase];
 
+  const handleRosterUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setRosterStatus({ type: "loading", message: "Parsing Excel file..." });
+    try {
+      const roster = await parseRosterExcel(file);
+      if (roster.length === 0) { setRosterStatus({ type: "error", message: "No valid rows found. Ensure columns: Name/StudentName, Team/TeamName" }); return; }
+      if (roster.length > 400) { setRosterStatus({ type: "error", message: `Found ${roster.length} students. Maximum is 400.` }); return; }
+      const teams = rosterToTeams(roster, gameState.allowIndividualPlay);
+      setGameState(p => ({ ...p, teams }));
+      const indCount = teams.filter(t => t.isIndividual).length;
+      const teamCount = teams.filter(t => !t.isIndividual).length;
+      setRosterStatus({ type: "ok", message: `Loaded ${roster.length} students → ${teamCount} teams + ${indCount} individuals` });
+    } catch (err) {
+      setRosterStatus({ type: "error", message: "Failed to parse: " + err.message });
+    }
+    e.target.value = "";
+  };
+
   function advanceQuarter() {
     setGameState(prev => {
       const newAipHistory = [...prev.aipHistory, { quarter: prev.currentQuarter, aip: aipInput }];
-      const updatedTeams = prev.teams.map(team => {
+      let updatedTeams = prev.teams.map(team => {
         const prevData = team.quarters.length > 0 ? team.quarters[team.quarters.length - 1] : null;
         const phase = getPhase(prev.currentQuarter);
         const result = simulateQuarter(team.pendingPrice || INIT_PRICE, aipInput, phase, team.pendingPromo || 0, prevData);
         return { ...team, quarters: [...team.quarters, result], pendingPrice: null, pendingPromo: null, submitted: false };
       });
+      // Apply SD penalty
+      if (prev.sdPenaltyEnabled) {
+        updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
+      }
       return { ...prev, currentQuarter: prev.currentQuarter + 1, aipHistory: newAipHistory,
                teams: updatedTeams, status: prev.currentQuarter >= 12 ? "finished" : "active" };
     });
   }
 
-  const sortedTeams = useMemo(() => {
-    return [...gameState.teams].sort((a, b) => {
-      const profA = a.quarters.reduce((s, q) => s + q.profit, 0);
-      const profB = b.quarters.reduce((s, q) => s + q.profit, 0);
-      return profB - profA;
-    });
-  }, [gameState.teams]);
+  const scoredTeams = useMemo(() => calcScores(gameState.teams), [gameState.teams]);
 
   const submittedCount = gameState.teams.filter(t => t.submitted).length;
 
   const tabs = [
     { id: "control", label: "Game Control", icon: Icons.settings },
+    { id: "roster", label: "Roster Upload", icon: Icons.download },
     { id: "leaderboard", label: "Leaderboard", icon: Icons.trophy },
+    { id: "scores", label: "Scores & Ranks", icon: Icons.chart },
     { id: "teams", label: "All Teams", icon: Icons.users },
     { id: "analytics", label: "Analytics", icon: Icons.chart },
     { id: "sheets", label: "Google Sheets", icon: Icons.grid },
@@ -433,41 +630,169 @@ function FacultyDashboard({ onLogout }) {
                 </div>
               </div>
             )}
+
+            <div className="control-card" style={{marginTop:"1rem"}}>
+              <h3>Game Settings</h3>
+              <div className="settings-toggles">
+                <label className="toggle-row">
+                  <input type="checkbox" checked={gameState.sdPenaltyEnabled}
+                    onChange={e => setGameState(p => ({...p, sdPenaltyEnabled: e.target.checked}))} />
+                  <span>SD Penalty — penalise outlier prices (beyond 1.5 SD from mean)</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={gameState.allowIndividualPlay}
+                    onChange={e => setGameState(p => ({...p, allowIndividualPlay: e.target.checked}))} />
+                  <span>Allow Individual Play — students can join without a team</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "roster" && (
+          <div className="page">
+            <div className="page-header">
+              <div><h1>Roster Upload</h1><p className="page-desc">Upload an Excel file with student names and team assignments</p></div>
+            </div>
+            <div className="roster-section">
+              <div className="ss-card">
+                <h3>Upload Student Roster (.xlsx / .xls / .csv)</h3>
+                <p>The Excel file should have columns: <strong>Name</strong> (or StudentName) and <strong>Team</strong> (or TeamName). Optional: Seat, Enrolment.</p>
+                <p style={{marginTop:"0.5rem",fontSize:"0.82rem",color:"var(--text-secondary)"}}>Students with an empty Team column or "Individual" will be added as individual players. Maximum 400 students.</p>
+                <div className="roster-upload-row">
+                  <input type="file" ref={fileInputRef} accept=".xlsx,.xls,.csv" onChange={handleRosterUpload} style={{display:"none"}} />
+                  <button className="btn-push" onClick={() => fileInputRef.current?.click()}>
+                    <Icon d={Icons.download} size={16} /> Choose Excel File
+                  </button>
+                  <span className="roster-count">{gameState.teams.length} teams/individuals loaded</span>
+                </div>
+                {rosterStatus && <div className={`push-msg ${rosterStatus.type === "ok" ? "ok" : rosterStatus.type === "error" ? "err" : ""}`}>{rosterStatus.message}</div>}
+              </div>
+              <div className="ss-card">
+                <h3>Sample Excel Format</h3>
+                <table className="formula-table" style={{fontSize:"0.85rem"}}>
+                  <thead><tr><th>Name</th><th>Team</th><th>Seat</th><th>Enrolment</th></tr></thead>
+                  <tbody>
+                    <tr><td>Rahul Sharma</td><td>Alpha Pricers</td><td>1A</td><td>2026001</td></tr>
+                    <tr><td>Priya Patel</td><td>Alpha Pricers</td><td>1B</td><td>2026002</td></tr>
+                    <tr><td>Amit Kumar</td><td>Beta Margins</td><td>2A</td><td>2026003</td></tr>
+                    <tr><td>Solo Student</td><td><em>(empty or "Individual")</em></td><td>3A</td><td>2026004</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              {gameState.teams.length > 0 && (
+                <div className="ss-card">
+                  <h3>Current Roster ({gameState.teams.length} entries)</h3>
+                  <div className="roster-preview">
+                    {gameState.teams.slice(0, 50).map((t, i) => (
+                      <div className="rp-row" key={t.id}>
+                        <span className="rp-rank">{i+1}</span>
+                        <span className="rp-name">{t.name}</span>
+                        <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
+                        <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
+                      </div>
+                    ))}
+                    {gameState.teams.length > 50 && <p className="roster-more">... and {gameState.teams.length - 50} more</p>}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {tab === "leaderboard" && (
           <div className="page">
             <div className="page-header">
-              <div><h1>Leaderboard</h1><p className="page-desc">Real-time rankings by cumulative profit</p></div>
+              <div><h1>Leaderboard</h1><p className="page-desc">Real-time rankings by composite score</p></div>
             </div>
             <div className="leaderboard">
               <div className="lb-header-row">
                 <span className="lb-rank">#</span>
                 <span className="lb-team">Team</span>
-                <span className="lb-section">Section</span>
+                <span className="lb-type">Type</span>
                 <span className="lb-stat">Revenue</span>
                 <span className="lb-stat">Profit</span>
-                <span className="lb-stat">Meals Sold</span>
-                <span className="lb-stat">Avg Price</span>
+                <span className="lb-stat">Penalties</span>
+                <span className="lb-stat">Score</span>
               </div>
-              {sortedTeams.map((team, i) => {
-                const totRev = team.quarters.reduce((s,q) => s+q.revenue, 0);
-                const totProf = team.quarters.reduce((s,q) => s+q.profit, 0);
-                const totSales = team.quarters.reduce((s,q) => s+q.totalSales, 0);
-                const avgP = team.quarters.length > 0 ? team.quarters.reduce((s,q) => s+q.price, 0)/team.quarters.length : 0;
+              {scoredTeams.map((team, i) => {
                 return (
                   <div className={`lb-row ${i < 3 ? "lb-top" : ""}`} key={team.id}>
-                    <span className={`lb-rank rank-${i+1}`}>{i < 3 ? ["🥇","🥈","🥉"][i] : i+1}</span>
+                    <span className={`lb-rank rank-${i+1}`}>{i < 3 ? ["🥇","🥈","🥉"][i] : team.rank}</span>
                     <span className="lb-team">{team.name}</span>
-                    <span className="lb-section">{team.section}</span>
-                    <span className="lb-stat">{fmt(totRev)}</span>
-                    <span className={`lb-stat ${totProf >= 0 ? "profit-pos" : "profit-neg"}`}>{fmt(totProf)}</span>
-                    <span className="lb-stat">{totSales.toLocaleString("en-IN")}</span>
-                    <span className="lb-stat">{fmtD(avgP)}</span>
+                    <span className="lb-type">{team.isIndividual ? "👤" : "🤝"}</span>
+                    <span className="lb-stat">{fmt(team.totRevenue)}</span>
+                    <span className={`lb-stat ${team.totProfit >= 0 ? "profit-pos" : "profit-neg"}`}>{fmt(team.totProfit)}</span>
+                    <span className={`lb-stat ${team.penalties > 0 ? "profit-neg" : ""}`}>{team.penalties || "—"}</span>
+                    <span className="lb-stat"><strong>{team.score}</strong></span>
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {tab === "scores" && (
+          <div className="page">
+            <div className="page-header">
+              <div><h1>Scores & Rankings</h1><p className="page-desc">Composite scoring index with component breakdown</p></div>
+            </div>
+
+            <div className="ss-card" style={{marginBottom:"1rem"}}>
+              <h3>Scoring Index Methodology</h3>
+              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)",marginBottom:"0.75rem"}}>
+                Each team's final score (0–100) is computed from six normalised components:
+              </p>
+              <div className="score-weights">
+                <div className="sw-item"><span className="sw-pct">35%</span><span className="sw-label">Cumulative Profit</span></div>
+                <div className="sw-item"><span className="sw-pct">15%</span><span className="sw-label">Total Revenue</span></div>
+                <div className="sw-item"><span className="sw-pct">15%</span><span className="sw-label">Total Meals Sold</span></div>
+                <div className="sw-item"><span className="sw-pct">15%</span><span className="sw-label">Consistency (low profit SD)</span></div>
+                <div className="sw-item"><span className="sw-pct">10%</span><span className="sw-label">Fewer SD Penalties</span></div>
+                <div className="sw-item"><span className="sw-pct">10%</span><span className="sw-label">Profit Growth (late vs early)</span></div>
+              </div>
+            </div>
+
+            {gameState.sdPenaltyEnabled && (
+              <div className="ss-card" style={{marginBottom:"1rem",borderLeft:"4px solid var(--red-600)"}}>
+                <h3>SD Penalty Rules</h3>
+                <p style={{fontSize:"0.88rem",color:"var(--text-secondary)"}}>
+                  Each quarter, prices are checked against the group's standard deviation. Outliers incur profit penalties:
+                </p>
+                <div className="score-weights" style={{marginTop:"0.5rem"}}>
+                  <div className="sw-item"><span className="sw-pct" style={{background:"var(--amber-100)",color:"var(--amber-600)"}}>10%</span><span className="sw-label">Z-score 1.5–2.0 (moderate outlier)</span></div>
+                  <div className="sw-item"><span className="sw-pct" style={{background:"var(--red-100)",color:"var(--red-600)"}}>20%</span><span className="sw-label">Z-score &gt; 2.0 (extreme outlier)</span></div>
+                </div>
+              </div>
+            )}
+
+            <div className="ss-card">
+              <h3>Full Rankings</h3>
+              <div className="summary-table-wrap">
+                <table className="summary-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th><th>Team/Individual</th><th>Type</th><th>Profit</th><th>Revenue</th>
+                      <th>Sales</th><th>Penalties</th><th>Growth</th><th>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scoredTeams.map(t => (
+                      <tr key={t.id} className={t.rank <= 3 ? "highlight-row" : ""}>
+                        <td><strong>{t.rank <= 3 ? ["🥇","🥈","🥉"][t.rank-1] : `#${t.rank}`}</strong></td>
+                        <td><strong>{t.name}</strong></td>
+                        <td>{t.isIndividual ? "Individual" : "Team"}</td>
+                        <td className={t.totProfit >= 0 ? "profit-pos" : "profit-neg"}>{fmt(t.totProfit)}</td>
+                        <td>{fmt(t.totRevenue)}</td>
+                        <td>{t.totSales.toLocaleString("en-IN")}</td>
+                        <td className={t.penalties > 0 ? "profit-neg" : ""}>{t.penalties}</td>
+                        <td>{t.growth > 0 ? "+" : ""}{t.growth}%</td>
+                        <td><strong style={{fontSize:"1.1em"}}>{t.score}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
