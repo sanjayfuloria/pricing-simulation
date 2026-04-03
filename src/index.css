@@ -886,3 +886,29 @@ textarea { resize: vertical; }
 .lb-type {
   width: 3rem; text-align: center; font-size: 1.1rem;
 }
+
+/* ─── AIP Read-Only Display in Live Preview ───────────────── */
+.aip-display-readonly {
+  background: var(--bg-alt);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+.aip-label-ro {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+.aip-value-ro {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.aip-setter-hidden { position: absolute; overflow: hidden; width: 0; height: 0; }

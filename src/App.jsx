@@ -39,7 +39,7 @@ function calcNewCustomers(price, avgComp, phase, promo = 0, lastPrice = null) {
   else if (phase === 2) nc = 400 - 40*price + 21*avgComp + 0.10*promo;
   else {
     const drop = lastPrice !== null ? Math.max(0, lastPrice - price) : 0;
-    nc = 1000 - 40*price + 21*avgComp + 0.20*promo + 100*drop;
+    nc = 400 - 40*price + 21*avgComp + 0.20*promo + 100*drop;
   }
   return Math.max(0, Math.round(nc));
 }
@@ -1003,6 +1003,7 @@ function SheetsSetupGuide() {
 // STUDENT DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
 function StudentDashboard({ session, onLogout }) {
+  const [gamePhase, setGamePhase] = useState("pregame"); // "pregame" or "playing"
   const [tab, setTab] = useState("play");
   const [quarters, setQuarters] = useState([]);
   const [currentInput, setCurrentInput] = useState({ price: INIT_PRICE, promo: 0 });
@@ -1031,6 +1032,51 @@ function StudentDashboard({ session, onLogout }) {
   const totProf = quarters.reduce((s,q) => s+q.profit, 0);
   const totSales = quarters.reduce((s,q) => s+q.totalSales, 0);
 
+  // Determine which phases have been unlocked (based on quarters completed)
+  const unlockedPhase = currentQuarter <= 4 ? 1 : currentQuarter <= 8 ? 2 : 3;
+
+  // PRE-GAME STRATEGY SCREEN
+  if (gamePhase === "pregame") {
+    return (
+      <div className="login-wrapper">
+        <div className="login-bg-pattern" />
+        <div className="login-container login-form-container student-form" style={{maxWidth:600}}>
+          <div className="login-brand compact">
+            <div className="brand-icon small">📋</div>
+            <h2>Pre-Game: Pricing Strategy</h2>
+            <p style={{color:"var(--text-secondary)",fontSize:"0.9rem",marginTop:"0.25rem"}}>
+              Before the simulation begins, outline your team's pricing strategy for the next 3 years.
+            </p>
+          </div>
+          <div className="login-form">
+            <div className="form-field">
+              <label>Overall Generic Strategy *</label>
+              <textarea rows={3} value={strategy.generic} onChange={e => setStrategy(p => ({...p, generic: e.target.value}))} placeholder="e.g. Penetration pricing to gain market share, then gradually increase..." />
+            </div>
+            <div className="form-field">
+              <label>Year 1 Objectives (Q1–Q4) — Market Entry *</label>
+              <textarea rows={2} value={strategy.year1} onChange={e => setStrategy(p => ({...p, year1: e.target.value}))} placeholder="How will you establish your presence?" />
+            </div>
+            <div className="form-field">
+              <label>Year 2 Objectives (Q5–Q8) — Promotions</label>
+              <textarea rows={2} value={strategy.year2} onChange={e => setStrategy(p => ({...p, year2: e.target.value}))} placeholder="How will you use promotions? Growth targets?" />
+            </div>
+            <div className="form-field">
+              <label>Year 3 Objectives (Q9–Q12) — Recession</label>
+              <textarea rows={2} value={strategy.year3} onChange={e => setStrategy(p => ({...p, year3: e.target.value}))} placeholder="How will you survive the recession?" />
+            </div>
+            <button className="login-submit student-submit"
+              onClick={() => { if (!strategy.generic.trim()) return; setGamePhase("playing"); }}
+              disabled={!strategy.generic.trim()}>
+              Start Simulation →
+            </button>
+            {!strategy.generic.trim() && <p className="login-hint">Fill in at least the generic strategy to proceed</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const tabs = [
     { id: "play", label: "Play", icon: Icons.play },
     { id: "strategy", label: "Strategy", icon: Icons.edit },
@@ -1045,12 +1091,12 @@ function StudentDashboard({ session, onLogout }) {
           <span className="sb-icon">🍽️</span>
           <div>
             <div className="sb-title">{session.teamName}</div>
-            <div className="sb-role">{session.section}</div>
+            <div className="sb-role">{session.section}{session.isIndividual ? " (Individual)" : ""}</div>
           </div>
         </div>
         <div className="sidebar-nav">
           {tabs.map(t => (
-            <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+            <button type="button" key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setTab(t.id); }}>
               <Icon d={t.icon} size={18} /><span>{t.label}</span>
             </button>
           ))}
@@ -1064,7 +1110,7 @@ function StudentDashboard({ session, onLogout }) {
             <div className="sk"><span className="sk-l">Revenue</span><span className="sk-v">{fmt(totRev)}</span></div>
             <div className="sk"><span className="sk-l">Profit</span><span className={`sk-v ${totProf >= 0 ? "profit-pos" : "profit-neg"}`}>{fmt(totProf)}</span></div>
           </div>
-          <button className="nav-item logout-item" onClick={onLogout}>
+          <button type="button" className="nav-item logout-item" onClick={onLogout}>
             <Icon d={Icons.logout} size={18} /><span>Logout</span>
           </button>
         </div>
@@ -1099,10 +1145,6 @@ function StudentDashboard({ session, onLogout }) {
                       </div>
                       <button className="price-btn" onClick={() => setCurrentInput(p => ({...p, price: +(p.price + PRICE_STEP).toFixed(2)}))}>+</button>
                     </div>
-                    <div className="aip-setter">
-                      <label>Average Industry Price (announced by faculty)</label>
-                      <div className="aip-inline"><span>₹</span><input type="number" value={aip} onChange={e => setAip(+e.target.value)} step={PRICE_STEP} min={0} /></div>
-                    </div>
                     {cfg.promo && (
                       <div className="promo-setter">
                         <label>Promotion Expense <span className="promo-max">(max {fmt(maxPromo)})</span></label>
@@ -1117,6 +1159,13 @@ function StudentDashboard({ session, onLogout }) {
                   <div className="play-preview-card">
                     <h3>Live Preview</h3>
                     <p className="preview-note">Updates as you change your price</p>
+                    <div className="aip-display-readonly">
+                      <span className="aip-label-ro">Avg Industry Price (set by faculty)</span>
+                      <div className="aip-value-ro">₹{aip.toFixed(2)}</div>
+                      <div className="aip-setter-hidden">
+                        <input type="number" value={aip} onChange={e => setAip(+e.target.value)} step={PRICE_STEP} min={0} style={{opacity:0,position:"absolute",pointerEvents:"none",width:0,height:0}} />
+                      </div>
+                    </div>
                     {preview && (
                       <div className="preview-grid">
                         <div className="pv-item"><span className="pv-l">Retention</span><span className="pv-v">{(preview.retRate*100).toFixed(0)}%</span><span className="pv-hint">{preview.retLabel}</span></div>
@@ -1213,25 +1262,30 @@ function StudentDashboard({ session, onLogout }) {
 
         {tab === "formulas" && (
           <div className="page">
-            <div className="page-header"><div><h1>Rules & Formulas</h1><p className="page-desc">Complete reference for all three phases</p></div></div>
+            <div className="page-header"><div><h1>Rules & Formulas</h1><p className="page-desc">Formulas for the current phase{unlockedPhase < 3 ? " — next phase formulas will be revealed when you reach them" : ""}</p></div></div>
             <div className="formulas-content">
               <div className="formula-card"><h3>Initial Conditions</h3><div className="fc-grid"><div>Initial Price: <strong>₹10/meal</strong></div><div>Initial Customers: <strong>100</strong></div><div>Price Increments: <strong>₹0.50</strong></div></div></div>
               <div className="formula-card"><h3>Customer Retention (All Phases)</h3>
                 <table className="formula-table"><thead><tr><th>Your Price vs Last AIP</th><th>Retention</th></tr></thead><tbody>
                   <tr><td>More than 20% lower</td><td>30%</td></tr><tr><td>10–20% lower</td><td>15%</td></tr><tr><td>Less than 10% lower</td><td>10%</td></tr><tr><td>≥ AIP</td><td>0%</td></tr>
                 </tbody></table></div>
-              {[1,2,3].map(p => { const c = PHASE_CONFIG[p]; return (
+              {[1,2,3].filter(p => p <= unlockedPhase).map(p => { const c = PHASE_CONFIG[p]; return (
                 <div className="formula-card" key={p} style={{borderLeft: `4px solid ${c.color}`}}>
                   <div className="fc-phase-tag" style={{background: c.color}}>{c.tag}</div>
                   <h3>{c.name}</h3>
                   <div className="fc-formula">
                     {p === 1 && <code>New Customers = 400 − 40×(Price) + 21×(Avg Competitor Price)</code>}
                     {p === 2 && <><code>New Customers = 400 − 40×(Price) + 21×(Avg Comp Price) + 0.10×(Promo)</code><p className="fc-note">Max promo = 20% of last quarter revenue</p></>}
-                    {p === 3 && <><code>New Customers = 1000 − 40×(Price) + 21×(Avg Comp Price) + 0.20×(Promo) + 100×(Last Price − This Price)</code><p className="fc-note">VC = ₹5/meal • FC = ₹1000/quarter</p></>}
+                    {p === 3 && <><code>New Customers = 400 − 40×(Price) + 21×(Avg Comp Price) + 0.20×(Promo) + 100×(Last Price − This Price)</code><p className="fc-note">VC = ₹5/meal • FC = ₹1000/quarter</p></>}
                   </div>
                   <div className="fc-formulas-sub"><code>Revenue = Total Sales × Own Price</code><code>Profit = Total Sales × (Price − VC) − FC − Promo</code></div>
                 </div>
               ); })}
+              {unlockedPhase < 3 && (
+                <div className="formula-card" style={{opacity:0.5,borderLeft:"4px dashed var(--border)"}}>
+                  <h3>🔒 Phase {unlockedPhase + 1} formulas will be revealed after Q{unlockedPhase * 4} is complete</h3>
+                </div>
+              )}
             </div>
           </div>
         )}
