@@ -1456,34 +1456,39 @@ function StudentDashboard({ session, onLogout }) {
 
   // localStorage polling + storage event: Listen for faculty actions from another tab
   const lastSeenTimestamp = useRef(0);
+  const [debugInfo, setDebugInfo] = useState("");
   useEffect(() => {
     if (gamePhase !== "playing" || !session.gameCode) return;
     const storageKey = "pricing-sim-" + session.gameCode;
+    setDebugInfo("Listening on key: " + storageKey);
     
     const checkLocalStorage = () => {
       try {
         const raw = localStorage.getItem(storageKey);
-        if (!raw) return;
+        if (!raw) {
+          setDebugInfo(prev => "Key: " + storageKey + " | No data found | " + new Date().toLocaleTimeString());
+          return;
+        }
         const msg = JSON.parse(raw);
+        setDebugInfo("Found: " + msg.type + " ts=" + msg.timestamp + " lastSeen=" + lastSeenTimestamp.current + " | " + new Date().toLocaleTimeString());
         if (msg.timestamp && msg.timestamp > lastSeenTimestamp.current) {
           lastSeenTimestamp.current = msg.timestamp;
-          console.log("Student: localStorage message detected:", msg);
           if (msg.type === "QUARTER_STARTED" && !quarterReadyRef.current && !timerRunningRef.current) {
-            console.log("Student: Faculty started quarter! Starting timer.");
+            setDebugInfo("STARTING TIMER! AIP=" + msg.aip);
             if (msg.aip != null) setAip(msg.aip);
             startTimer();
           }
         }
-      } catch(e) {}
+      } catch(e) { setDebugInfo("Error: " + e.message); }
     };
 
-    // Check immediately
     checkLocalStorage();
-    // Poll every 1 second
     const interval = setInterval(checkLocalStorage, 1000);
-    // Also listen for the storage event (fires when another tab writes)
     const handleStorage = (e) => {
-      if (e.key === storageKey) checkLocalStorage();
+      if (e.key === storageKey) {
+        setDebugInfo("storage event fired for " + storageKey);
+        checkLocalStorage();
+      }
     };
     window.addEventListener("storage", handleStorage);
 
@@ -1786,6 +1791,7 @@ function StudentDashboard({ session, onLogout }) {
                       <p>{quarters.length === 0
                         ? "The faculty will start the simulation shortly. Your timer will begin when the faculty clicks 'Start Quarter'."
                         : `The faculty needs to process Q${quarters.length} results before Q${currentQuarter} can begin. The timer will start when the faculty advances the quarter.`}</p>
+                      {debugInfo && <p style={{fontSize:"0.72rem",color:"var(--text-muted)",marginTop:"0.5rem",fontFamily:"monospace",wordBreak:"break-all"}}>Debug: {debugInfo}</p>}
                     </div>
                     <button className="btn-push" style={{marginLeft:"auto",whiteSpace:"nowrap"}} onClick={unlockNextQuarter}>
                       Simulate Faculty Start
