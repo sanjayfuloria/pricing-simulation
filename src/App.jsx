@@ -294,7 +294,7 @@ async function pushToSheets(url, payload) {
 // LOGIN SCREEN — Role selection + Faculty login + Student multi-step wizard
 // ═══════════════════════════════════════════════════════════════════════════
 // Default team IDs when no Excel is uploaded
-const DEFAULT_TEAM_IDS = Array.from({length:100}, (_,i) => `Team ${i+1}`);
+const DEFAULT_TEAM_IDS = Array.from({length:400}, (_,i) => `Team ${i+1}`);
 
 function LoginScreen({ onLogin }) {
   const [role, setRole] = useState(null);
@@ -740,10 +740,29 @@ function FacultyDashboard({ onLogout }) {
             )}
 
             {gameState.teams.length === 0 && (
-              <button type="button" className="btn-push" style={{background:"var(--text-muted)",width:"100%"}}
-                onClick={() => { setGameState(p => ({...p, teams: generateDemoTeams()})); setRosterStatus({type:"ok",message:"16 demo teams loaded"}); }}>
-                Load Demo Teams (testing)
-              </button>
+              <div className="setup-option-card">
+                <h3>Or Assign Default Numbered Teams</h3>
+                <p style={{fontSize:"0.85rem",color:"var(--text-secondary)",marginBottom:"0.5rem"}}>
+                  Quickly create numbered teams (Team 1, Team 2, ... up to 400) without uploading an Excel file.
+                </p>
+                <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                  <label style={{fontSize:"0.85rem",fontWeight:600,whiteSpace:"nowrap"}}>Number of teams:</label>
+                  <input type="number" min={1} max={400} defaultValue={20} id="defaultTeamCount"
+                    style={{width:"80px",textAlign:"center"}} />
+                  <button type="button" className="btn-push" onClick={() => {
+                    const count = Math.min(400, Math.max(1, parseInt(document.getElementById("defaultTeamCount").value) || 20));
+                    const teams = Array.from({length: count}, (_, i) => ({
+                      id: `team-${i}`, name: `Team ${i+1}`, section: "",
+                      members: [{name:"",seat:"",enrol:""}],
+                      quarters: [], pendingPrice: null, pendingPromo: null, submitted: false, isIndividual: false,
+                    }));
+                    setGameState(p => ({...p, teams}));
+                    setRosterStatus({type:"ok",message:`${count} default teams created (Team 1 to Team ${count})`});
+                  }}>
+                    Create Teams
+                  </button>
+                </div>
+              </div>
             )}
 
             <button className="login-submit faculty-submit" style={{marginTop:"1rem"}}
@@ -1229,7 +1248,7 @@ function StudentDashboard({ session, onLogout }) {
   const [submitted, setSubmitted] = useState(false);
   const [conclusions, setConclusions] = useState({ revenue: "", profit: "" });
   const [quarterComments, setQuarterComments] = useState({ observations: "", nextStrategy: "" });
-  const [quarterReady, setQuarterReady] = useState(true); // false = waiting for faculty to process
+  const [quarterReady, setQuarterReady] = useState(false); // false = waiting for faculty to start
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const timerRef = useRef(null);
@@ -1267,12 +1286,8 @@ function StudentDashboard({ session, onLogout }) {
     }, 1000);
   }, [currentQuarter]);
 
-  // Start timer for Q1 automatically when game starts
-  useEffect(() => {
-    if (gamePhase === "playing" && currentQuarter === 1 && !timerRunning && timerSeconds === 0) {
-      startTimer();
-    }
-  }, [gamePhase]);
+  // Q1 does NOT auto-start. Student must wait for faculty to start every quarter.
+  // The timer is only started via unlockNextQuarter() (triggered by faculty).
 
   // Cleanup timer
   useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
@@ -1529,15 +1544,17 @@ function StudentDashboard({ session, onLogout }) {
                 </div>
 
                 {/* Waiting for Faculty overlay */}
-                {!quarterReady && !submitted && quarters.length > 0 && (
+                {!quarterReady && !submitted && (
                   <div className="faculty-wait-banner">
                     <div className="fw-icon">⏳</div>
                     <div>
-                      <h3>Waiting for Faculty</h3>
-                      <p>The faculty needs to process Q{quarters.length} results before you can start Q{currentQuarter}. The timer will begin when the faculty advances the quarter.</p>
+                      <h3>Waiting for Faculty to Start Q{currentQuarter}</h3>
+                      <p>{quarters.length === 0
+                        ? "The faculty will start the simulation shortly. Your timer will begin when the faculty clicks 'Start Quarter'."
+                        : `The faculty needs to process Q${quarters.length} results before Q${currentQuarter} can begin. The timer will start when the faculty advances the quarter.`}</p>
                     </div>
                     <button className="btn-push" style={{marginLeft:"auto",whiteSpace:"nowrap"}} onClick={unlockNextQuarter}>
-                      Simulate Faculty Advance
+                      Simulate Faculty Start
                     </button>
                   </div>
                 )}
