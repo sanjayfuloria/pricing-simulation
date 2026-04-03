@@ -359,14 +359,26 @@ function LoginScreen({ onLogin }) {
     const code = gameCode.trim().toUpperCase();
     if (code.length !== 8) { setError("Please enter a valid 8-character simulation code"); return; }
     setError("");
-    if (FIREBASE_ENABLED) {
-      const meta = await checkGameExists(code);
-      if (!meta) { setError("Game not found. Check your code and try again."); return; }
-      // Fetch team list from Firebase
-      const fbTeams = await getGameTeamIds(code);
-      if (fbTeams.length > 0) {
-        setAvailableTeams(fbTeams.map(t => t.name || t.id));
+    
+    // Check Firebase REST API directly (more reliable than SDK)
+    try {
+      const res = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/meta.json");
+      if (res.ok) {
+        const meta = await res.json();
+        if (!meta) { setError("Game not found. Check your code and try again."); return; }
       }
+      // Fetch team list from Firebase
+      const teamsRes = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/teams.json");
+      if (teamsRes.ok) {
+        const teamsData = await teamsRes.json();
+        if (teamsData) {
+          const teamNames = Object.values(teamsData).map(t => t.name || "Unknown");
+          if (teamNames.length > 0) setAvailableTeams(teamNames);
+        }
+      }
+    } catch (e) {
+      // If Firebase check fails, let student through anyway (offline mode)
+      console.log("Firebase check failed, proceeding in offline mode:", e.message);
     }
     setStudentStep("teamSelect");
   };
