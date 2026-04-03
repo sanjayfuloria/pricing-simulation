@@ -627,29 +627,24 @@ function FacultyDashboard({ onLogout }) {
     e.target.value = "";
   };
 
-  // Faculty starts the current quarter (enables student timers)
-  // localStorage-based sync for same-browser tab communication
-  // Faculty writes game state to localStorage, student polls it
+  const FIREBASE_REST = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
 
+  // Faculty starts the current quarter (enables student timers)
   function startCurrentQuarter() {
-    console.log("Faculty: Starting quarter", gameState.currentQuarter, "for game", gameState.gameId);
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
-    // Write to localStorage so student tabs can detect it
+    // Write to localStorage for same-browser tabs
     try {
       localStorage.setItem("pricing-sim-" + gameState.gameId, JSON.stringify({
-        type: "QUARTER_STARTED",
-        quarter: gameState.currentQuarter,
-        aip: aipInput,
-        gameId: gameState.gameId,
-        timestamp: Date.now(),
+        type: "QUARTER_STARTED", quarter: gameState.currentQuarter, aip: aipInput,
+        gameId: gameState.gameId, timestamp: Date.now(),
       }));
-    } catch(e) { console.error("localStorage write error:", e); }
-    // Also sync to Firebase for cross-device
-    if (FIREBASE_ENABLED) {
-      fbStartQuarter(gameState.gameId, aipInput)
-        .then(() => console.log("Firebase: startQuarter success"))
-        .catch(e => console.error("Firebase startQuarter error:", e));
-    }
+    } catch(e) {}
+    // Write to Firebase REST API for cross-device
+    fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quarterStarted: true, status: "active", aipInput: aipInput }),
+    }).then(r => console.log("Firebase startQuarter:", r.status)).catch(e => console.error("Firebase error:", e));
   }
 
   // Faculty processes the current quarter and advances
@@ -678,10 +673,15 @@ function FacultyDashboard({ onLogout }) {
           timestamp: Date.now(),
         }));
       } catch(e) {}
-      // Sync to Firebase
-      if (FIREBASE_ENABLED) {
-        processQuarterResults(prev.gameId, updatedTeams, qNum + 1, newAipHistory, isFinished);
-      }
+      // Sync to Firebase REST API
+      fetch(FIREBASE_REST + "/games/" + prev.gameId + "/meta.json", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentQuarter: qNum + 1, status: isFinished ? "finished" : "waiting",
+          quarterStarted: false, aipHistory: newAipHistory,
+        }),
+      }).catch(e => console.error("Firebase processQuarter error:", e));
       return { ...prev, currentQuarter: qNum + 1, aipHistory: newAipHistory,
                teams: updatedTeams, status: isFinished ? "finished" : "waiting",
                quarterStarted: false };
@@ -899,15 +899,30 @@ function FacultyDashboard({ onLogout }) {
                 const resetTeams = gameState.teams.map(t => ({...t, quarters:[], pendingPrice:null, pendingPromo:null, submitted:false}));
                 setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false, teams: resetTeams}));
                 setSetupStep("playing"); setTab("control");
-                // Sync to Firebase (non-blocking — game starts regardless)
-                if (FIREBASE_ENABLED) {
-                  try {
-                    await createGame(gameState.gameId, gameState);
-                    await saveTeamsToGame(gameState.gameId, resetTeams);
-                    console.log("Firebase: Game created successfully");
-                  } catch (e) {
-                    console.error("Firebase sync error (game still works locally):", e);
-                  }
+                // Write game to Firebase REST API
+                const FIREBASE_REST = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
+                try {
+                  // Create game meta
+                  await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      status: "waiting", currentQuarter: 1, quarterStarted: false,
+                      sdPenaltyEnabled: gameState.sdPenaltyEnabled,
+                      aipHistory: [], aipInput: 10, createdAt: new Date().toISOString(),
+                    }),
+                  });
+                  // Save teams
+                  const teamsObj = {};
+                  resetTeams.forEach(t => { teamsObj[t.id] = { name: t.name, section: t.section || "", members: t.members || [], isIndividual: t.isIndividual || false }; });
+                  await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/teams.json", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(teamsObj),
+                  });
+                  console.log("Firebase: Game " + gameState.gameId + " created via REST");
+                } catch (e) {
+                  console.error("Firebase REST error:", e);
                 }
               }}>
               🚀 Finalise Teams & Enter Game ({gameState.teams.length} participants)
@@ -1556,11 +1571,14 @@ function StudentDashboard({ session, onLogout }) {
     setQuarters(prev => [...prev, result]);
     setSubmitted(true);
     setQuarterReady(false); // LOCK — stays false until faculty processes
-    // Sync to Firebase
-    if (FIREBASE_ENABLED && session.gameCode && session.selectedTeamId) {
-      submitStudentPrice(session.gameCode, `team-${session.selectedTeamId}`,
-        currentInput.price, currentInput.promo,
-        quarterComments.observations, quarterComments.nextStrategy);
+    // Sync to Firebase REST API
+    if (session.gameCode && session.selectedTeamId) {
+      const teamKey = session.selectedTeamId.replace(/\s+/g, "_");
+      fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + session.gameCode + "/teams/" + teamKey + ".json", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendingPrice: currentInput.price, pendingPromo: currentInput.promo || 0, submitted: true }),
+      }).catch(e => console.error("Firebase submit error:", e));
     }
     if (timerRef.current) clearInterval(timerRef.current);
     setTimerRunning(false);
