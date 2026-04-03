@@ -624,9 +624,13 @@ function FacultyDashboard({ onLogout }) {
 
   // Faculty starts the current quarter (enables student timers)
   function startCurrentQuarter() {
+    console.log("Faculty: Starting quarter", gameState.currentQuarter, "for game", gameState.gameId);
     setGameState(prev => ({ ...prev, quarterStarted: true, status: "active" }));
     if (FIREBASE_ENABLED) {
-      fbStartQuarter(gameState.gameId, aipInput).catch(e => console.error("Firebase startQuarter error:", e));
+      console.log("Firebase: Writing quarterStarted=true, aipInput=", aipInput);
+      fbStartQuarter(gameState.gameId, aipInput)
+        .then(() => console.log("Firebase: startQuarter success"))
+        .catch(e => console.error("Firebase startQuarter error:", e));
     }
   }
 
@@ -1427,20 +1431,28 @@ function StudentDashboard({ session, onLogout }) {
   // The timer is only started via unlockNextQuarter() (triggered by faculty or Firebase).
 
   // Listen to Firebase for faculty starting quarters and AIP updates
+  const quarterReadyRef = useRef(quarterReady);
+  const timerRunningRef = useRef(timerRunning);
+  quarterReadyRef.current = quarterReady;
+  timerRunningRef.current = timerRunning;
+
   useEffect(() => {
     if (!FIREBASE_ENABLED || gamePhase !== "playing" || !session.gameCode) return;
+    console.log("Firebase: Subscribing to game meta for", session.gameCode);
     const unsub = listenToGameMeta(session.gameCode, (meta) => {
+      console.log("Firebase meta update:", meta);
       // Faculty started the quarter — unlock and start timer
-      if (meta.quarterStarted && !quarterReady && !timerRunning) {
+      if (meta.quarterStarted && !quarterReadyRef.current && !timerRunningRef.current) {
+        console.log("Firebase: Faculty started quarter! Starting timer.");
         startTimer();
       }
       // Update AIP from faculty
-      if (meta.aipInput && meta.aipInput !== aip) {
+      if (meta.aipInput != null) {
         setAip(meta.aipInput);
       }
     });
     return unsub;
-  }, [gamePhase, session.gameCode, quarterReady, timerRunning, aip]);
+  }, [gamePhase, session.gameCode]); // Only re-subscribe when game phase or code changes
 
   // Cleanup timer
   useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);

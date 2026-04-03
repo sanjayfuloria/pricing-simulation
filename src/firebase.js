@@ -185,7 +185,7 @@ export function listenToGameMeta(gameId, callback) {
   const unsubscribe = onValue(metaRef, (snap) => {
     if (snap.exists()) callback(snap.val());
   });
-  return () => off(metaRef);
+  return unsubscribe; // Firebase v9 onValue returns the unsubscribe function directly
 }
 
 // Listen to all teams (faculty view)
@@ -200,7 +200,7 @@ export function listenToTeams(gameId, callback) {
       callback(teams);
     }
   });
-  return () => off(teamsRef);
+  return unsubscribe;
 }
 
 // Listen to a specific team (student view)
