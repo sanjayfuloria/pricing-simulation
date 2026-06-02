@@ -603,7 +603,10 @@ function FacultyDashboard({ onLogout }) {
   const [pushStatus, setPushStatus] = useState(null);
   const [rosterStatus, setRosterStatus] = useState(null);
   const fileInputRef = useRef(null);
+  const attendanceInputRef = useRef(null);
   const [loadOldGameId, setLoadOldGameId] = useState("");
+  const [attendanceList, setAttendanceList] = useState([]); // [{name, enrol, section}]
+  const [teamSize, setTeamSize] = useState(4); // for auto-assign
 
   const currentPhase = getPhase(Math.max(gameState.currentQuarter, 1));
   const cfg = PHASE_CONFIG[currentPhase];
@@ -625,6 +628,55 @@ function FacultyDashboard({ onLogout }) {
       setRosterStatus({ type: "error", message: "Failed to parse: " + err.message });
     }
     e.target.value = "";
+  };
+
+  // Handle attendance sheet upload (student list without teams)
+  const handleAttendanceUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setRosterStatus({ type: "loading", message: "Parsing attendance file..." });
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const students = rows.map(r => {
+        const name = r["Student Name"] || r["StudentName"] || r["Name"] || r["name"] || r["STUDENT NAME"] || "";
+        const enrol = String(r["Enrollment Number"] || r["Enrollment"] || r["EnrollmentNumber"] || r["Enrolment"] || r["enrol"] || r["ENROLLMENT NUMBER"] || "");
+        const section = r["Section"] || r["section"] || r["SECTION"] || "";
+        return { name: name.toString().trim(), enrol: enrol.trim(), section: section.toString().trim() };
+      }).filter(s => s.name);
+      if (students.length === 0) { setRosterStatus({ type: "error", message: "No students found. Ensure column: Student Name" }); return; }
+      if (students.length > 400) { setRosterStatus({ type: "error", message: `Found ${students.length} students. Maximum is 400.` }); return; }
+      setAttendanceList(students);
+      setRosterStatus({ type: "ok", message: `Loaded ${students.length} students from attendance sheet. Now assign them to teams below.` });
+    } catch (err) {
+      setRosterStatus({ type: "error", message: "Failed to parse: " + err.message });
+    }
+    e.target.value = "";
+  };
+
+  // Auto-assign students from attendance list into teams
+  const autoAssignTeams = () => {
+    if (attendanceList.length === 0) return;
+    const size = Math.max(1, Math.min(10, teamSize));
+    const teams = [];
+    for (let i = 0; i < attendanceList.length; i += size) {
+      const chunk = attendanceList.slice(i, i + size);
+      const teamNum = Math.floor(i / size) + 1;
+      teams.push({
+        id: `team-${teamNum}`,
+        name: `Team ${teamNum}`,
+        section: chunk[0]?.section || "",
+        members: chunk.map(s => ({ name: s.name, enrol: s.enrol, seat: "" })),
+        quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
+        isIndividual: chunk.length === 1 && size === 1,
+      });
+    }
+    setGameState(p => ({ ...p, teams }));
+    const indCount = teams.filter(t => t.isIndividual).length;
+    const teamCount = teams.filter(t => !t.isIndividual).length;
+    setRosterStatus({ type: "ok", message: `Auto-assigned ${attendanceList.length} students → ${teamCount} teams of ~${size} (${indCount} individuals)` });
   };
 
   const FIREBASE_REST = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
@@ -816,13 +868,13 @@ function FacultyDashboard({ onLogout }) {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // STEP 2: TEAM SETUP — Upload roster, finalise, start game
+  // STEP 2: TEAM SETUP — Templates, Upload, Attendance, Auto-assign
   // ═══════════════════════════════════════════════════════════════════
   if (setupStep === "teams") {
     return (
       <div className="login-wrapper">
         <div className="login-bg-pattern" />
-        <div className="login-container login-form-container" style={{maxWidth:700}}>
+        <div className="login-container login-form-container" style={{maxWidth:720}}>
           <button className="back-btn" onClick={() => setSetupStep("pregame")}>← Back to Setup</button>
           <div className="login-brand compact">
             <div className="brand-icon small">👥</div>
@@ -833,45 +885,79 @@ function FacultyDashboard({ onLogout }) {
             </div>
           </div>
           <div className="login-form">
+
+            {/* ── DOWNLOAD TEMPLATES ── */}
             <div className="setup-option-card">
-              <h3>Upload Student Roster</h3>
-              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)"}}>
-                Excel file (.xlsx/.csv) with columns: <strong>Name</strong> and <strong>Team</strong>. Optional: Seat, Enrolment.
+              <h3>📥 Download Templates</h3>
+              <p style={{fontSize:"0.85rem",color:"var(--text-secondary)",marginBottom:"0.75rem"}}>
+                Download a pre-formatted Excel template, fill it with your student data, and upload below.
               </p>
-              <p style={{fontSize:"0.82rem",color:"var(--text-muted)",marginTop:"0.25rem"}}>
-                Leave Team blank or write "Individual" for solo players. Max 400 students.
+              <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
+                <a href="/team-roster-template.xlsx" download className="btn-push" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"0.3rem"}}>
+                  <Icon d={Icons.download} size={14} /> Team Roster Template
+                </a>
+                <a href="/attendance-template.xlsx" download className="btn-push" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"0.3rem",background:"var(--text-muted)"}}>
+                  <Icon d={Icons.download} size={14} /> Attendance Sheet Template
+                </a>
+              </div>
+            </div>
+
+            {/* ── OPTION A: UPLOAD TEAM ROSTER ── */}
+            <div className="setup-option-card">
+              <h3>Option A — Upload Team Roster</h3>
+              <p style={{fontSize:"0.85rem",color:"var(--text-secondary)"}}>
+                Upload Excel with columns: <strong>Team Name</strong>, <strong>Student Name</strong>, <strong>Enrollment Number</strong>, <strong>Section</strong>.
+                Students with the same team name are grouped together. Leave Team Name blank for individual players.
               </p>
               <div className="roster-upload-row" style={{marginTop:"0.75rem"}}>
                 <input type="file" ref={fileInputRef} accept=".xlsx,.xls,.csv" onChange={handleRosterUpload} style={{display:"none"}} />
                 <button type="button" className="btn-push" onClick={() => fileInputRef.current?.click()}>
-                  <Icon d={Icons.download} size={16} /> Choose File
+                  <Icon d={Icons.download} size={16} /> Upload Roster File
                 </button>
-                <span className="roster-count">{gameState.teams.length} entries</span>
+                {gameState.teams.length > 0 && <span className="roster-count">{gameState.teams.length} teams loaded</span>}
               </div>
-              {rosterStatus && <div className={`push-msg ${rosterStatus.type === "ok" ? "ok" : rosterStatus.type === "error" ? "err" : ""}`} style={{marginTop:"0.5rem"}}>{rosterStatus.message}</div>}
             </div>
 
-            {gameState.teams.length > 0 && (
-              <div className="setup-option-card" style={{maxHeight:280,overflowY:"auto"}}>
-                <h3>Roster — {gameState.teams.filter(t=>!t.isIndividual).length} teams, {gameState.teams.filter(t=>t.isIndividual).length} individuals</h3>
-                <div className="roster-preview">
-                  {gameState.teams.map((t, i) => (
-                    <div className="rp-row" key={t.id}>
-                      <span className="rp-rank">{i+1}</span>
-                      <span className="rp-name">{t.name}</span>
-                      <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
-                      <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* ── OPTION B: UPLOAD ATTENDANCE + AUTO-ASSIGN ── */}
+            <div className="setup-option-card">
+              <h3>Option B — Upload Attendance & Auto-Assign Teams</h3>
+              <p style={{fontSize:"0.85rem",color:"var(--text-secondary)"}}>
+                Upload a student list (names + enrollment numbers), then automatically group them into equally-sized teams.
+              </p>
+              <div className="roster-upload-row" style={{marginTop:"0.75rem"}}>
+                <input type="file" ref={attendanceInputRef} accept=".xlsx,.xls,.csv" onChange={handleAttendanceUpload} style={{display:"none"}} />
+                <button type="button" className="btn-push" onClick={() => attendanceInputRef.current?.click()}>
+                  <Icon d={Icons.download} size={16} /> Upload Attendance Sheet
+                </button>
+                {attendanceList.length > 0 && <span className="roster-count">{attendanceList.length} students loaded</span>}
               </div>
-            )}
+              {attendanceList.length > 0 && (
+                <div style={{marginTop:"0.75rem",padding:"0.75rem",background:"var(--bg-alt)",borderRadius:"var(--radius)",border:"1px solid var(--border)"}}>
+                  <div style={{display:"flex",gap:"0.5rem",alignItems:"center",flexWrap:"wrap"}}>
+                    <label style={{fontSize:"0.85rem",fontWeight:600,whiteSpace:"nowrap"}}>Members per team:</label>
+                    <input type="number" min={1} max={10} value={teamSize}
+                      onChange={e => setTeamSize(parseInt(e.target.value) || 4)}
+                      style={{width:"60px",textAlign:"center"}} />
+                    <span style={{fontSize:"0.82rem",color:"var(--text-muted)"}}>
+                      → {Math.ceil(attendanceList.length / Math.max(1, teamSize))} teams
+                    </span>
+                    <button type="button" className="btn-push" onClick={autoAssignTeams}>
+                      Auto-Assign to Teams
+                    </button>
+                  </div>
+                  <div style={{marginTop:"0.5rem",maxHeight:120,overflowY:"auto",fontSize:"0.82rem",color:"var(--text-secondary)"}}>
+                    <strong>{attendanceList.length} students:</strong> {attendanceList.map(s => s.name).join(", ")}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {gameState.teams.length === 0 && (
+            {/* ── OPTION C: DEFAULT NUMBERED TEAMS ── */}
+            {gameState.teams.length === 0 && attendanceList.length === 0 && (
               <div className="setup-option-card">
-                <h3>Or Assign Default Numbered Teams</h3>
+                <h3>Option C — Default Numbered Teams</h3>
                 <p style={{fontSize:"0.85rem",color:"var(--text-secondary)",marginBottom:"0.5rem"}}>
-                  Quickly create numbered teams (Team 1, Team 2, ... up to 400) without uploading an Excel file.
+                  Quickly create numbered teams (Team 1, Team 2, ...) without uploading any file.
                 </p>
                 <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
                   <label style={{fontSize:"0.85rem",fontWeight:600,whiteSpace:"nowrap"}}>Number of teams:</label>
@@ -893,6 +979,33 @@ function FacultyDashboard({ onLogout }) {
               </div>
             )}
 
+            {/* ── STATUS MESSAGE ── */}
+            {rosterStatus && <div className={`push-msg ${rosterStatus.type === "ok" ? "ok" : rosterStatus.type === "error" ? "err" : ""}`}>{rosterStatus.message}</div>}
+
+            {/* ── ROSTER PREVIEW ── */}
+            {gameState.teams.length > 0 && (
+              <div className="setup-option-card" style={{maxHeight:280,overflowY:"auto"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <h3>Roster — {gameState.teams.filter(t=>!t.isIndividual).length} teams, {gameState.teams.filter(t=>t.isIndividual).length} individuals ({gameState.teams.reduce((s,t)=>s+t.members.length,0)} students)</h3>
+                  <button type="button" className="btn-push" style={{background:"var(--red-600)",color:"white",padding:"0.2rem 0.6rem",fontSize:"0.75rem"}}
+                    onClick={() => { setGameState(p => ({...p, teams:[]})); setAttendanceList([]); setRosterStatus(null); }}>
+                    Clear All
+                  </button>
+                </div>
+                <div className="roster-preview">
+                  {gameState.teams.map((t, i) => (
+                    <div className="rp-row" key={t.id}>
+                      <span className="rp-rank">{i+1}</span>
+                      <span className="rp-name">{t.name}</span>
+                      <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
+                      <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── FINALISE BUTTON ── */}
             <button className="login-submit faculty-submit" style={{marginTop:"1rem"}}
               disabled={gameState.teams.length === 0}
               onClick={async () => {
@@ -902,7 +1015,6 @@ function FacultyDashboard({ onLogout }) {
                 // Write game to Firebase REST API
                 const FIREBASE_REST = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
                 try {
-                  // Create game meta
                   await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json", {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -912,7 +1024,6 @@ function FacultyDashboard({ onLogout }) {
                       aipHistory: [], aipInput: 10, createdAt: new Date().toISOString(),
                     }),
                   });
-                  // Save teams
                   const teamsObj = {};
                   resetTeams.forEach(t => { teamsObj[t.id] = { name: t.name, section: t.section || "", members: t.members || [], isIndividual: t.isIndividual || false }; });
                   await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/teams.json", {
@@ -920,7 +1031,6 @@ function FacultyDashboard({ onLogout }) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(teamsObj),
                   });
-                  console.log("Firebase: Game " + gameState.gameId + " created via REST");
                 } catch (e) {
                   console.error("Firebase REST error:", e);
                 }
