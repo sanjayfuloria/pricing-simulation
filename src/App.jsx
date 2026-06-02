@@ -362,7 +362,7 @@ function LoginScreen({ onLogin }) {
     
     // Try to fetch team list from Firebase (non-blocking)
     try {
-      const teamsRes = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/teams.json");
+      const teamsRes = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/teams.json?_t=" + Date.now(), { cache: "no-store" });
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json();
         if (teamsData) {
@@ -1495,9 +1495,9 @@ function StudentDashboard({ session, onLogout }) {
       // Skip if already ready or timer running
       if (quarterReadyRef.current || timerRunningRef.current) return;
 
-      // Check Firebase REST API directly
+      // Check Firebase REST API directly (cache: no-store prevents stale responses)
       try {
-        const res = await fetch(firebaseUrl);
+        const res = await fetch(firebaseUrl + "?_t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
           const meta = await res.json();
           if (meta && meta.quarterStarted) {
