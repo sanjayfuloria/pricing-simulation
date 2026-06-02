@@ -643,7 +643,7 @@ function FacultyDashboard({ onLogout }) {
     fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quarterStarted: true, status: "active", aipInput: aipInput }),
+      body: JSON.stringify({ quarterStarted: true, status: "active", aipInput: aipInput, currentQuarter: gameState.currentQuarter }),
     }).then(r => console.log("Firebase startQuarter:", r.status)).catch(e => console.error("Firebase error:", e));
   }
 
@@ -1459,6 +1459,7 @@ function StudentDashboard({ session, onLogout }) {
     setTimerSeconds(duration);
     setTimerRunning(true);
     setQuarterReady(true);
+    setSubmitted(false);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimerSeconds(prev => {
@@ -1478,8 +1479,11 @@ function StudentDashboard({ session, onLogout }) {
   // SYNC: Poll Firebase REST API directly every 2 seconds
   const quarterReadyRef = useRef(quarterReady);
   const timerRunningRef = useRef(timerRunning);
+  const submittedRef = useRef(submitted);
+  const lastStartedQuarterRef = useRef(0); // Track which quarter we last started
   quarterReadyRef.current = quarterReady;
   timerRunningRef.current = timerRunning;
+  submittedRef.current = submitted;
   const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
@@ -1492,17 +1496,18 @@ function StudentDashboard({ session, onLogout }) {
 
     const checkForQuarterStart = async () => {
       if (cancelled) return;
-      // Skip if already ready or timer running
-      if (quarterReadyRef.current || timerRunningRef.current) return;
+      // Skip if already ready, timer running, or student already submitted this quarter
+      if (quarterReadyRef.current || timerRunningRef.current || submittedRef.current) return;
 
       // Check Firebase REST API directly (cache: no-store prevents stale responses)
       try {
         const res = await fetch(firebaseUrl + "?_t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
           const meta = await res.json();
-          if (meta && meta.quarterStarted) {
+          if (meta && meta.quarterStarted && meta.currentQuarter > lastStartedQuarterRef.current) {
+            // Only start if this is a NEW quarter we haven't started yet
+            lastStartedQuarterRef.current = meta.currentQuarter;
             if (meta.aipInput != null) setAip(meta.aipInput);
-            // Use the ref to get the latest startTimer function
             if (startTimerRef.current) startTimerRef.current();
             return;
           }
@@ -1514,7 +1519,8 @@ function StudentDashboard({ session, onLogout }) {
         const raw = localStorage.getItem(storageKey);
         if (raw) {
           const msg = JSON.parse(raw);
-          if (msg.type === "QUARTER_STARTED") {
+          if (msg.type === "QUARTER_STARTED" && msg.quarter > lastStartedQuarterRef.current) {
+            lastStartedQuarterRef.current = msg.quarter;
             if (msg.aip != null) setAip(msg.aip);
             if (startTimerRef.current) startTimerRef.current();
             return;
