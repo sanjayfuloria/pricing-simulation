@@ -1086,11 +1086,31 @@ function FacultyDashboard({ onLogout }) {
                 <div className="finished-icon">🏁</div>
                 <h2>Simulation Complete</h2>
                 <p>Game <strong>{gameState.gameId}</strong> — All 12 quarters played. Check Leaderboard, Scores, and Analytics for results.</p>
-                <button type="button" className="btn-push" style={{marginTop:"1rem"}} onClick={() => { setSetupStep("pregame"); setGameState(p => ({...p, status:"setup", currentQuarter:0, quarterStarted:false, gameId: generateGameId(), teams: []})); }}>
+                <button type="button" className="btn-push" style={{marginTop:"1rem"}} onClick={() => { setSetupStep("pregame"); setGameState(p => ({...p, status:"setup", currentQuarter:0, quarterStarted:false, gameId: generateGameId(), teams: [], aipHistory:[]})); }}>
                   Set Up New Game
                 </button>
               </div>
             )}
+
+            {/* RESET GAME — always available */}
+            <div className="control-card" style={{borderLeft:"4px solid var(--red-600)",marginTop:"1rem"}}>
+              <h3>Reset Game</h3>
+              <p className="cc-desc">Discard all current data and return to the pre-game setup. This cannot be undone.</p>
+              <button type="button" className="btn-push" style={{background:"var(--red-600)",color:"white",marginTop:"0.5rem"}}
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to reset? All game data will be lost.")) {
+                    setSetupStep("pregame");
+                    setGameState({
+                      currentQuarter: 0, status: "setup", aipHistory: [], teams: [],
+                      sheetsUrl: "", gameId: generateGameId(),
+                      sdPenaltyEnabled: true, allowIndividualPlay: true, quarterStarted: false,
+                    });
+                    setAipInput(INIT_PRICE);
+                  }
+                }}>
+                🔄 Reset & Start Over
+              </button>
+            </div>
 
             {gameState.aipHistory.length > 0 && (
               <div className="aip-history">
@@ -1129,6 +1149,13 @@ function FacultyDashboard({ onLogout }) {
             <div className="page-header">
               <div><h1>Leaderboard</h1><p className="page-desc">Real-time rankings by composite score</p></div>
             </div>
+            {scoredTeams.filter(t => t.quarters && t.quarters.length > 0).length === 0 ? (
+              <div className="control-card" style={{textAlign:"center",padding:"3rem"}}>
+                <div style={{fontSize:"3rem",marginBottom:"0.5rem"}}>📊</div>
+                <h2 style={{marginBottom:"0.5rem"}}>No Results Yet</h2>
+                <p className="cc-desc">The leaderboard will populate after teams complete their first quarter. Start the game and process Q1 to see rankings here.</p>
+              </div>
+            ) : (
             <div className="leaderboard">
               <div className="lb-header-row">
                 <span className="lb-rank">#</span>
@@ -1139,10 +1166,10 @@ function FacultyDashboard({ onLogout }) {
                 <span className="lb-stat">Penalties</span>
                 <span className="lb-stat">Score</span>
               </div>
-              {scoredTeams.map((team, i) => {
+              {scoredTeams.filter(t => t.quarters && t.quarters.length > 0).map((team, i) => {
                 return (
                   <div className={`lb-row ${i < 3 ? "lb-top" : ""}`} key={team.id}>
-                    <span className={`lb-rank rank-${i+1}`}>{i < 3 ? ["🥇","🥈","🥉"][i] : team.rank}</span>
+                    <span className={`lb-rank rank-${i+1}`}>{i < 3 ? ["🥇","🥈","🥉"][i] : i+1}</span>
                     <span className="lb-team">{team.name}</span>
                     <span className="lb-type">{team.isIndividual ? "👤" : "🤝"}</span>
                     <span className="lb-stat">{fmt(team.totRevenue)}</span>
@@ -1153,6 +1180,7 @@ function FacultyDashboard({ onLogout }) {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
