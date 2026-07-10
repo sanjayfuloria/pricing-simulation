@@ -1,0 +1,2096 @@
+[
+  {
+    "id": "team-1",
+    "name": "Alpha Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Aadithya Manoj Menon",
+        "enrol": "25BSPHH01C0007",
+        "email": "aadithya.manojmenon25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aman Chowdhury",
+        "enrol": "25BSPHH01C0101",
+        "email": "aman.chowdhury25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ankit Kumar Pansari",
+        "enrol": "25BSPHH01C0144",
+        "email": "ankitkumar.pansari25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Anupreet Kaur Rattanpal",
+        "enrol": "25BSPHH01C0170",
+        "email": "anupreetkaur.rattanpal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aryaman Sharma",
+        "enrol": "25BSPHH01C0216",
+        "email": "aryaman.sharma25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-2",
+    "name": "Beta Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Aryan Maurya",
+        "enrol": "25BSPHH01C0221",
+        "email": "aryan.maurya25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ayushi Bisht",
+        "enrol": "25BSPHH01C0247",
+        "email": "ayushi.bisht25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shetty Bhuvan Dayananda",
+        "enrol": "25BSPHH01C0281",
+        "email": "bhuvan.dayanandashetty25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Daksh Talwar",
+        "enrol": "25BSPHH01C0333",
+        "email": "daksh.talwar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Debinanda Mitra",
+        "enrol": "25BSPHH01C0342",
+        "email": "debinanda.mitra25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-3",
+    "name": "Gamma Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Desai Darshan Maruti",
+        "enrol": "25BSPHH01C0352",
+        "email": "desai.darshanmaruti25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Devanandana Binuraj",
+        "enrol": "25BSPHH01C0357",
+        "email": "devanandana.binuraj25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Devatheertha Revathi S Nair",
+        "enrol": "25BSPHH01C0360",
+        "email": "devatheertha.revathisnair25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ganni Jahnavi Chowdary",
+        "enrol": "25BSPHH01C0406",
+        "email": "ganni.jahnavichowdary25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Gaurank Mundra",
+        "enrol": "25BSPHH01C0411",
+        "email": "gaurank.mundra25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-4",
+    "name": "Delta Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Goundla Vani",
+        "enrol": "25BSPHH01C0427",
+        "email": "goundla.vani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Gundrevula Sreeya",
+        "enrol": "25BSPHH01C0435",
+        "email": "gundrevula.sreeya25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ishika H Vyas",
+        "enrol": "25BSPHH01C0487",
+        "email": "ishika.hvyas25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Jannvi Agarwal",
+        "enrol": "25BSPHH01C0501",
+        "email": "jannvi.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kamesh Shukla",
+        "enrol": "25BSPHH01C0536",
+        "email": "kamesh.shukla25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-5",
+    "name": "Epsilon Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Kaushal Viral Jani",
+        "enrol": "25BSPHH01C0567",
+        "email": "kaushal.viraljani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kaushik Agarwal",
+        "enrol": "25BSPHH01C0568",
+        "email": "kaushik.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kavya Singhal",
+        "enrol": "25BSPHH01C0571",
+        "email": "kavya.singhal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kirti Mantri",
+        "enrol": "25BSPHH01C0588",
+        "email": "kirti.mantri25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kondi Tanusha",
+        "enrol": "25BSPHH01C0597",
+        "email": "kondi.tanusha25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-6",
+    "name": "Zeta Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Kunal Kumar Sahu",
+        "enrol": "25BSPHH01C0619",
+        "email": "kunalkumar.sahu25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "M Nawaz Baig",
+        "enrol": "25BSPHH01C0648",
+        "email": "mnawaz.baig25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Manan Soni",
+        "enrol": "25BSPHH01C0675",
+        "email": "manan.soni25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mayank Sinha",
+        "enrol": "25BSPHH01C0706",
+        "email": "mayank.sinha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Megha Ganguly",
+        "enrol": "25BSPHH01C0712",
+        "email": "megha.ganguly25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-7",
+    "name": "Eta Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Megha Kumari",
+        "enrol": "25BSPHH01C0713",
+        "email": "megha.kumari25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Muhammed Haseeb N",
+        "enrol": "25BSPHH01C0746",
+        "email": "muhammed.haseebn25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nagraju Pavanraju",
+        "enrol": "25BSPHH01C0757",
+        "email": "nagraju.pavanraju25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nandini Garg",
+        "enrol": "25BSPHH01C0768",
+        "email": "nandini.garg25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nikunj Goel",
+        "enrol": "25BSPHH01C0796",
+        "email": "nikunj.goel25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-8",
+    "name": "Theta Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "P L S Hanuja Padmanabhuni",
+        "enrol": "25BSPHH01C0820",
+        "email": "plshanuja.padmanabhuni25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Palakolanu Likitha",
+        "enrol": "25BSPHH01C0837",
+        "email": "palakolanu.likitha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Palash Kaushik",
+        "enrol": "25BSPHH01C0839",
+        "email": "palash.kaushik25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Piyush Kumar Khatri",
+        "enrol": "25BSPHH01C0875",
+        "email": "piyush.kumarkhatri25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rajavarapu Maniteja",
+        "enrol": "25BSPHH01C0957",
+        "email": "rajavarapu.maniteja25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-9",
+    "name": "Iota Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Ria Sharma",
+        "enrol": "25BSPHH01C0986",
+        "email": "ria.sharma25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Robin Shajan Paramby",
+        "enrol": "25BSPHH01C1013",
+        "email": "robinshajan.paramby25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rose Thomas",
+        "enrol": "25BSPHH01C1016",
+        "email": "rose.thomas25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "S Zaayn Asif",
+        "enrol": "25BSPHH01C1039",
+        "email": "szaayn.asif25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sai Vedanth K S",
+        "enrol": "25BSPHH01C1060",
+        "email": "saivedanth.ks25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sakshi Modi",
+        "enrol": "25BSPHH01C1068",
+        "email": "sakshi.modi25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-10",
+    "name": "Kappa Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Sanskaar Sharma",
+        "enrol": "25BSPHH01C1086",
+        "email": "sanskaar.sharma25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sathvika Bekkary",
+        "enrol": "25BSPHH01C1108",
+        "email": "sathvika.bekkary25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shagun Agarwal",
+        "enrol": "25BSPHH01C1123",
+        "email": "shagun.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shatakshi Prakash",
+        "enrol": "25BSPHH01C1138",
+        "email": "shatakshi.prakash25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shikha Tiwari",
+        "enrol": "25BSPHH01C1145",
+        "email": "shikha.tiwari25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shraddha P Rao",
+        "enrol": "25BSPHH01C1167",
+        "email": "shraddhap.rao25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-11",
+    "name": "Lambda Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Shreyasha Solanki",
+        "enrol": "25BSPHH01C1181",
+        "email": "shreyasha.solanki25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Subham Sharma",
+        "enrol": "25BSPHH01C1268",
+        "email": "subham.sharma25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sweta Boity",
+        "enrol": "25BSPHH01C1301",
+        "email": "sweta.boity25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Tanisha Agarwal",
+        "enrol": "25BSPHH01C1320",
+        "email": "tanisha.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shaik Teepu Mohaseen",
+        "enrol": "25BSPHH01C1340",
+        "email": "teepu.mohaseenshaik25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Thiruveedula Rakshita",
+        "enrol": "25BSPHH01C1347",
+        "email": "thiruveedula.rakshita25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-12",
+    "name": "Mu Pricers",
+    "section": "Hyderabad - Section A",
+    "members": [
+      {
+        "name": "Vanshika Saxena",
+        "enrol": "25BSPHH01C1392",
+        "email": "vanshika.saxena25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ketha Venkata Surya Ganesh",
+        "enrol": "25BSPHH01C1419",
+        "email": "venkatasuryaganesh.ketha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Koukuntla Sarayu",
+        "enrol": "25BSPHH01C1475",
+        "email": "koukuntla.sarayu25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Thota Kundan",
+        "enrol": "25BSPHH01C1476",
+        "email": "kundan.thota25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Swapnil Priyadarshi",
+        "enrol": "25BSPHH01C1505",
+        "email": "swapnil.priyadarshi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Undavalli Geethika",
+        "enrol": "25BSPHH01C1575",
+        "email": "undavalli.geethika25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-13",
+    "name": "Nu Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Aakash R",
+        "enrol": "25BSPHH01C0010",
+        "email": "aakash.r25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aarya Pradeep Nair",
+        "enrol": "25BSPHH01C0017",
+        "email": "aarya.pradeepnair25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aditya Kumar Mohapatra",
+        "enrol": "25BSPHH01C0061",
+        "email": "adityakumar.mohapatra25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Akila S",
+        "enrol": "25BSPHH01C0085",
+        "email": "akila.s25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aman Kumar Raut",
+        "enrol": "25BSPHH01C0102",
+        "email": "amankumar.raut25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-14",
+    "name": "Xi Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Andela Bindhusree",
+        "enrol": "25BSPHH01C0128",
+        "email": "andela.bindhusree25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aniket Kumar",
+        "enrol": "25BSPHH01C0132",
+        "email": "aniket.kumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aniruddha Anil Dani",
+        "enrol": "25BSPHH01C0134",
+        "email": "aniruddha.anildani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Anshul Joshi",
+        "enrol": "25BSPHH01C0160",
+        "email": "anshul.joshi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Bandal Siddharth Dattatray",
+        "enrol": "25BSPHH01C0255",
+        "email": "bandal.siddharthdattatray25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-15",
+    "name": "Omicron Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Bariki Keerthi Kumar",
+        "enrol": "25BSPHH01C0258",
+        "email": "bariki.keerthikumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Buch Harsh Ketanbhai",
+        "enrol": "25BSPHH01C0295",
+        "email": "buchharsh.ketanbhai25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Dachepalli Satyanarayana",
+        "enrol": "25BSPHH01C0330",
+        "email": "dachepalli.satyanarayana25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Devi Charankumar",
+        "enrol": "25BSPHH01C0362",
+        "email": "devi.charankumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Drishti Shailendra Jani",
+        "enrol": "25BSPHH01C0387",
+        "email": "drishti.shailendrajani25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-16",
+    "name": "Pi Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Gude Sri Varshini",
+        "enrol": "25BSPHH01C0431",
+        "email": "gude.srivarshini25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Gundaboina Gopikrishna",
+        "enrol": "25BSPHH01C0433",
+        "email": "gundaboina.gopikrishna25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Hridesh Thombre",
+        "enrol": "25BSPHH01C0467",
+        "email": "hridesh.thombre25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Hrishiraj Roy",
+        "enrol": "25BSPHH01C0468",
+        "email": "hrishiraj.roy25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Immanuel Joseph",
+        "enrol": "25BSPHH01C0471",
+        "email": "immanuel.joseph25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-17",
+    "name": "Rho Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Indukuri Venkata Rithika",
+        "enrol": "25BSPHH01C0474",
+        "email": "indukuri.venkatarithika25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Jatin Patel",
+        "enrol": "25BSPHH01C0507",
+        "email": "jatin.patel25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kankana Chatterjee",
+        "enrol": "25BSPHH01C0543",
+        "email": "kankana.chatterjee25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kashish Gupta",
+        "enrol": "25BSPHH01C0554",
+        "email": "kashish.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Keran Varsha K",
+        "enrol": "25BSPHH01C0574",
+        "email": "keran.varshak25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-18",
+    "name": "Sigma Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Khushi Tilwani",
+        "enrol": "25BSPHH01C0583",
+        "email": "khushi.tilwani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kiruthika M",
+        "enrol": "25BSPHH01C0589",
+        "email": "kiruthika.m25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kritika M Banerjee",
+        "enrol": "25BSPHH01C0609",
+        "email": "kritika.mbanerjee25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Lakshman. G",
+        "enrol": "25BSPHH01C0636",
+        "email": "lakshman.g25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Lalngaihawmi",
+        "enrol": "25BSPHH01C0639",
+        "email": "lalngaihawmi25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-19",
+    "name": "Tau Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Lamiya Thesneem. C",
+        "enrol": "25BSPHH01C0640",
+        "email": "lamiya.thesneemc25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Lopamudra Sahoo",
+        "enrol": "25BSPHH01C0646",
+        "email": "lopamudra.sahoo25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "M Shirshika",
+        "enrol": "25BSPHH01C0650",
+        "email": "m.shirshika25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mahi Patel",
+        "enrol": "25BSPHH01C0666",
+        "email": "mahi.patel25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Manish H M",
+        "enrol": "25BSPHH01C0682",
+        "email": "manish.hm25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-20",
+    "name": "Upsilon Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Namrata Sharma",
+        "enrol": "25BSPHH01C0763",
+        "email": "namrata.sharma25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ojus Masson",
+        "enrol": "25BSPHH01C0818",
+        "email": "ojus.masson25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "P S Singaraveloo",
+        "enrol": "25BSPHH01C0821",
+        "email": "ps.singaraveloo25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Prabhat Kumar Gupta",
+        "enrol": "25BSPHH01C0883",
+        "email": "prabhatkumar.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Puja Dugar",
+        "enrol": "25BSPHH01C0930",
+        "email": "puja.dugar25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-21",
+    "name": "Phi Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Rajat Markan",
+        "enrol": "25BSPHH01C0956",
+        "email": "rajat.markan25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ramanathan M",
+        "enrol": "25BSPHH01C0962",
+        "email": "ramanathan.m25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Riddhi Shivrajsinh Gaekwad",
+        "enrol": "25BSPHH01C0990",
+        "email": "riddhishivrajsinh.gaekwad25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ridhima Ahluwalia",
+        "enrol": "25BSPHH01C0991",
+        "email": "ridhima.ahluwalia25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "S Vinay Krishna",
+        "enrol": "25BSPHH01C1038",
+        "email": "svinay.krishna25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-22",
+    "name": "Chi Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Sanskriti Sahni",
+        "enrol": "25BSPHH01C1090",
+        "email": "sanskriti.sahni25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sharanya",
+        "enrol": "25BSPHH01C1133",
+        "email": "sharanya25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shashwat Jha",
+        "enrol": "25BSPHH01C1136",
+        "email": "shashwat.jha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shinde Aditi Ravindra",
+        "enrol": "25BSPHH01C1147",
+        "email": "shindeaditi.ravindra25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shrijika Gupta",
+        "enrol": "25BSPHH01C1182",
+        "email": "shrijika.gupta25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-23",
+    "name": "Psi Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Shruti Kumari",
+        "enrol": "25BSPHH01C1193",
+        "email": "kumari.shruti25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Smrithi B",
+        "enrol": "25BSPHH01C1214",
+        "email": "smrithi.b25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Someshwar Samant",
+        "enrol": "25BSPHH01C1227",
+        "email": "someshwar.samant25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Soni Vatsal Vikram",
+        "enrol": "25BSPHH01C1233",
+        "email": "soni.vatsalvikram25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sreeganesh R",
+        "enrol": "25BSPHH01C1249",
+        "email": "sreeganesh.r25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-24",
+    "name": "Omega Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Taiba Makrani",
+        "enrol": "25BSPHH01C1310",
+        "email": "taiba.makrani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Taiyyaba Hashmi",
+        "enrol": "25BSPHH01C1311",
+        "email": "taiyyaba.hashmi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Tania Saha",
+        "enrol": "25BSPHH01C1318",
+        "email": "tania.saha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Urmila Ajit Kumar Pisharody",
+        "enrol": "25BSPHH01C1375",
+        "email": "urmilaajitkumar.pisharody25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Vaikuntam Harsha Vardhan",
+        "enrol": "25BSPHH01C1379",
+        "email": "vaikuntam.harshavardhan25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ananya Bamalia",
+        "enrol": "25BSPHH01C1489",
+        "email": "ananya.bamalia25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-25",
+    "name": "Apex Pricers",
+    "section": "Hyderabad - Section B",
+    "members": [
+      {
+        "name": "Suhani Singhi",
+        "enrol": "25BSPHH01C1498",
+        "email": "suhani.singhi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Lakshmi Shetty",
+        "enrol": "25BSPHH01C1511",
+        "email": "lakshmi.shetty25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Simran Raj",
+        "enrol": "25BSPHH01C1512",
+        "email": "simran.raj25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shaik Ahmed Imran",
+        "enrol": "25BSPHH01C1532",
+        "email": "shaik.ahmedimran25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Bhojwani Karankumar Jamandas",
+        "enrol": "25BSPHH01C1564",
+        "email": "bhojwani.karankumarjamandas25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Dokur Keerthana",
+        "enrol": "25BSPHH01C1577",
+        "email": "dokur.keerthana25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-26",
+    "name": "Nova Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Abhinav A",
+        "enrol": "25BSPHH01C0034",
+        "email": "abhinav.a25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aditya Jha",
+        "enrol": "25BSPHH01C0054",
+        "email": "aditya.jha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ananya Ojha",
+        "enrol": "25BSPHH01C0124",
+        "email": "ananya.ojha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ankita Mukherjee",
+        "enrol": "25BSPHH01C0151",
+        "email": "ankita.mukherjee25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Armani",
+        "enrol": "25BSPHH01C0200",
+        "email": "armani25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-27",
+    "name": "Vega Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Ashutosh Sanjay Mathane",
+        "enrol": "25BSPHH01C0226",
+        "email": "ashutoshsanjay.mathane25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Barnali Konark Dave",
+        "enrol": "25BSPHH01C0259",
+        "email": "barnali.konarkdave25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Bharti Gupta",
+        "enrol": "25BSPHH01C0271",
+        "email": "bharti.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Chakali Nithin",
+        "enrol": "25BSPHH01C0302",
+        "email": "chakali.nithin25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Dachepally Ashritha",
+        "enrol": "25BSPHH01C0331",
+        "email": "dachepally.ashritha25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-28",
+    "name": "Orion Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Danish Imam",
+        "enrol": "25BSPHH01C0334",
+        "email": "danish.imam25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Dasari Abhinav Vamsi Raj",
+        "enrol": "25BSPHH01C0340",
+        "email": "dasari.abhinavvamsiraj25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Gaikwad Arnavi Udaykumar",
+        "enrol": "25BSPHH01C0404",
+        "email": "gaikwad.arnaviudaykumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Harsh Bansal",
+        "enrol": "25BSPHH01C0448",
+        "email": "harsh.bansal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Isha Bansal",
+        "enrol": "25BSPHH01C0480",
+        "email": "isha.bansal25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-29",
+    "name": "Lyra Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Isha Shah",
+        "enrol": "25BSPHH01C0482",
+        "email": "isha.shah25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ishita Saklani",
+        "enrol": "25BSPHH01C0489",
+        "email": "ishita.saklani25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Jha Sanskriti Sanjeevkumar",
+        "enrol": "25BSPHH01C0513",
+        "email": "jhasanskriti.sanjeevkumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Juvvi Jyothsna Sai",
+        "enrol": "25BSPHH01C0519",
+        "email": "juvvi.jyothsnasai25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kanika Arora",
+        "enrol": "25BSPHH01C0539",
+        "email": "kanika.arora25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-30",
+    "name": "Ceres Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Kanishka Gupta",
+        "enrol": "25BSPHH01C0542",
+        "email": "kanishka.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Karampudi Abhigna",
+        "enrol": "25BSPHH01C0548",
+        "email": "karampudi.abhigna25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kunjal Jhawar",
+        "enrol": "25BSPHH01C0622",
+        "email": "kunjal.jhawar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Lekhan Gampala",
+        "enrol": "25BSPHH01C0644",
+        "email": "lekhan.gampala25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Magar Aashlesha Satish",
+        "enrol": "25BSPHH01C0660",
+        "email": "magar.aashleshasatish25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-31",
+    "name": "Atlas Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Mahi Kachhwaha",
+        "enrol": "25BSPHH01C0667",
+        "email": "mahi.kachhwaha25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Manya",
+        "enrol": "25BSPHH01C0696",
+        "email": "manya25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mehta Shubh Chetan",
+        "enrol": "25BSPHH01C0717",
+        "email": "mehta.shubhchetan25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mogalapalli Sai Vijay Kumar",
+        "enrol": "25BSPHH01C0730",
+        "email": "mogalapalli.saivijaykumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Naman Chawla",
+        "enrol": "25BSPHH01C0762",
+        "email": "naman.chawla25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-32",
+    "name": "Titan Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Nehal Agarwal",
+        "enrol": "25BSPHH01C0780",
+        "email": "nehal.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nikhil Kumar Murarka",
+        "enrol": "25BSPHH01C0791",
+        "email": "nikhilkumar.murarka25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Padavala Kirthana",
+        "enrol": "25BSPHH01C0829",
+        "email": "padavala.kirthana25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Parmar Darshika Pradeep",
+        "enrol": "25BSPHH01C0853",
+        "email": "parmar.darshikapradeep25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Prince Kaushal",
+        "enrol": "25BSPHH01C0913",
+        "email": "prince.kaushal25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-33",
+    "name": "Phoenix Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Pritish Sadual",
+        "enrol": "25BSPHH01C0915",
+        "email": "pritish.sadual25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "R Arbind Panda",
+        "enrol": "25BSPHH01C0941",
+        "email": "rarbind.panda25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rashi Chauhan",
+        "enrol": "25BSPHH01C0966",
+        "email": "rashi.chauhan25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rashi Padole",
+        "enrol": "25BSPHH01C0968",
+        "email": "rashi.padole25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rishabh Jha",
+        "enrol": "25BSPHH01C0996",
+        "email": "rishabh.jha25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-34",
+    "name": "Zenith Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Rishiita Sai Vallabhdas",
+        "enrol": "25BSPHH01C1000",
+        "email": "rishiita.saivallabhdas25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Riya Gupta",
+        "enrol": "25BSPHH01C1007",
+        "email": "riya.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rode Niharika Nitin",
+        "enrol": "25BSPHH01C1014",
+        "email": "rode.niharikanitin25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ryom Kanta Ghosh",
+        "enrol": "25BSPHH01C1026",
+        "email": "ryom.kantaghosh25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sagar Ravi Chopkar",
+        "enrol": "25BSPHH01C1046",
+        "email": "sagarravi.chopkar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Samashti Sharma",
+        "enrol": "25BSPHH01C1074",
+        "email": "samashti.sharma25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-35",
+    "name": "Quasar Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Sasubelli Deepthi",
+        "enrol": "25BSPHH01C1104",
+        "email": "sasubelli.deepthi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shah Shreyal Chetankumar",
+        "enrol": "25BSPHH01C1125",
+        "email": "shahshreyal.chetankumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shreya Sabat",
+        "enrol": "25BSPHH01C1178",
+        "email": "shreya.sabat25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shubh Agarwal",
+        "enrol": "25BSPHH01C1195",
+        "email": "shubh.agarwal25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sonkule Om Kishor",
+        "enrol": "25BSPHH01C1235",
+        "email": "sonkule.omkishor25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Soumya Gandhi",
+        "enrol": "25BSPHH01C1241",
+        "email": "soumya.gandhi25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-36",
+    "name": "Pulsar Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Sukhadia Diya Tusharkumar",
+        "enrol": "25BSPHH01C1280",
+        "email": "sukhadiadiya.tusharkumar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Uddip Bhattacharjee",
+        "enrol": "25BSPHH01C1367",
+        "email": "uddip.bhattacharjee25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Valanju Shruti Prashant",
+        "enrol": "25BSPHH01C1384",
+        "email": "valanju.shrutiprashant25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Vanshika Rawat",
+        "enrol": "25BSPHH01C1391",
+        "email": "vanshika.rawat25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Varsha M Reddy",
+        "enrol": "25BSPHH01C1399",
+        "email": "varsham.reddy25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nagda Bhoomi Jayesh",
+        "enrol": "25BSPHH01C1484",
+        "email": "nagda.bhoomijayesh25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-37",
+    "name": "Nebula Pricers",
+    "section": "Hyderabad - Section C",
+    "members": [
+      {
+        "name": "Ayushi",
+        "enrol": "25BSPHH01C1509",
+        "email": "ayushi25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nihar Ranjan Nayak",
+        "enrol": "25BSPHH01C1530",
+        "email": "nihar.ranjannayak25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Yaashi Gupta",
+        "enrol": "25BSPHH01C1548",
+        "email": "yaashi.gupta25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sahil Sagar",
+        "enrol": "25BSPHH01C1571",
+        "email": "sahil.sagar25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Devulapally Uday Kiran Reddy",
+        "enrol": "25BSPHH01C1578",
+        "email": "udaykiranreddy.devulapally25mh@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Thotakura Venkata Chakra Sairam",
+        "enrol": "25BSPHH01C1580",
+        "email": "thotakura.venkatachakrasairam25mh@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-38",
+    "name": "Comet Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Palash Bhambhani",
+        "enrol": "24BSOCBL0287",
+        "email": "palash.bhambhani24mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aadarsh Gandhi",
+        "enrol": "25BSOCBL0001",
+        "email": "aadarsh.gandhi25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aanchal Agarwal",
+        "enrol": "25BSOCBL0003",
+        "email": "aanchal.agarwal25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Akash Kumar Biswas",
+        "enrol": "25BSOCBL0031",
+        "email": "akashkumar.biswas25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Akshita Jain",
+        "enrol": "25BSOCBL0037",
+        "email": "akshita.jain25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-39",
+    "name": "Solaris Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Arpan Chakrborty",
+        "enrol": "25BSOCBL0074",
+        "email": "arpan.chakrborty25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Arun M",
+        "enrol": "25BSOCBL0076",
+        "email": "arun.m25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Asish Kumar Sahoo",
+        "enrol": "25BSOCBL0089",
+        "email": "asishkumar.sahoo25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Asritha Valluri",
+        "enrol": "25BSOCBL0091",
+        "email": "asritha.valluri25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Aswathy A S",
+        "enrol": "25BSOCBL0092",
+        "email": "aswathy.as25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-40",
+    "name": "Rigel Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Avani Raj",
+        "enrol": "25BSOCBL0093",
+        "email": "avani.raj25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ayushi Gupta",
+        "enrol": "25BSOCBL0100",
+        "email": "ayushi.gupta25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Devananda V",
+        "enrol": "25BSOCBL0139",
+        "email": "devananda.v25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Diptisree Panda",
+        "enrol": "25BSOCBL0155",
+        "email": "diptisree.panda25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Dishari Mandal",
+        "enrol": "25BSOCBL0157",
+        "email": "dishari.mandal25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-41",
+    "name": "Cygnus Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Divya Prasana",
+        "enrol": "25BSOCBL0160",
+        "email": "divya.prasana25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Ega Dowthsya Reddy",
+        "enrol": "25BSOCBL0165",
+        "email": "egadowthsya.reddy25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Garlapalli Uttejini",
+        "enrol": "25BSOCBL0173",
+        "email": "garlapalli.uttejini25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Hanumandla Vennela",
+        "enrol": "25BSOCBL0187",
+        "email": "hanumandla.vennela25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Jayasuriya S",
+        "enrol": "25BSOCBL0215",
+        "email": "jayasuriya.s25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-42",
+    "name": "Hydra Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Joel K Binu",
+        "enrol": "25BSOCBL0218",
+        "email": "joelk.binu25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Jovin Bishop. A",
+        "enrol": "25BSOCBL0220",
+        "email": "jovin.bishopa25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kotnala Bhargava Vasu",
+        "enrol": "25BSOCBL0256",
+        "email": "kotnala.bhargavavasu25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mansi",
+        "enrol": "25BSOCBL0280",
+        "email": "mansi25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Mehak Bhat",
+        "enrol": "25BSOCBL0287",
+        "email": "mehak.bhat25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-43",
+    "name": "Cassini Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Mohith Yadav S",
+        "enrol": "25BSOCBL0296",
+        "email": "mohith.yadavs25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Muhammed Shinas M P",
+        "enrol": "25BSOCBL0301",
+        "email": "muhammed.shinasmp25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Muskan Sanaya",
+        "enrol": "25BSOCBL0305",
+        "email": "muskan.sanaya25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Nandana S Arun",
+        "enrol": "25BSOCBL0314",
+        "email": "nandanas.arun25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Navonil Dey",
+        "enrol": "25BSOCBL0319",
+        "email": "navonil.dey25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-44",
+    "name": "Andromeda Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "P Vikas Reddy",
+        "enrol": "25BSOCBL0334",
+        "email": "pvikas.reddy25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Piyush Raj",
+        "enrol": "25BSOCBL0360",
+        "email": "piyush.raj25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Prapti Paul",
+        "enrol": "25BSOCBL0370",
+        "email": "prapti.paul25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "R Nandhu",
+        "enrol": "25BSOCBL0386",
+        "email": "r.nandhu25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rahul Roshan B",
+        "enrol": "25BSOCBL0390",
+        "email": "rahul.roshanb25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-45",
+    "name": "Polaris Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Reddi Shriya",
+        "enrol": "25BSOCBL0397",
+        "email": "reddi.shriya25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Rishi Prasath Kennedy J K",
+        "enrol": "25BSOCBL0402",
+        "email": "rishiprasath.kennedyjk25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Yeluri Sai Kumar",
+        "enrol": "25BSOCBL0420",
+        "email": "saikumar.yeluri25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Saiesh Shenvi Lotlecar",
+        "enrol": "25BSOCBL0423",
+        "email": "saieshshenvi.lotlecar25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sanjay K P",
+        "enrol": "25BSOCBL0441",
+        "email": "sanjay.kp25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-46",
+    "name": "Sirius Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Shashank Dhawan",
+        "enrol": "25BSOCBL0464",
+        "email": "shashank.dhawan25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shiva Prasad B",
+        "enrol": "25BSOCBL0470",
+        "email": "shiva.prasadb25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shreya Kumari",
+        "enrol": "25BSOCBL0475",
+        "email": "shreya.kumari25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sreeparvathy M",
+        "enrol": "25BSOCBL0514",
+        "email": "sreeparvathy.m25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Srinath Narayanan",
+        "enrol": "25BSOCBL0517",
+        "email": "srinath.narayanan25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Tanvee Daga",
+        "enrol": "25BSOCBL0553",
+        "email": "tanvee.daga25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-47",
+    "name": "Arcturus Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Torsha Chowdhury",
+        "enrol": "25BSOCBL0565",
+        "email": "torsha.chowdhury25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Trina Sarkar",
+        "enrol": "25BSOCBL0566",
+        "email": "trina.sarkar25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Unnati",
+        "enrol": "25BSOCBL0576",
+        "email": "unnati25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Swetashri Naik",
+        "enrol": "25BSOCBL0651",
+        "email": "swetashri.naik25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kotrunge Astha Madhukar",
+        "enrol": "25BSOCBL0657",
+        "email": "kotrungeastha.madhukar25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kesharwani Mahi Nilesh",
+        "enrol": "25BSOCBL0668",
+        "email": "kesharwani.mahinilesh25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  },
+  {
+    "id": "team-48",
+    "name": "Vortex Pricers",
+    "section": "Bangalore - Section A",
+    "members": [
+      {
+        "name": "Segu Harini",
+        "enrol": "25BSOCBL0674",
+        "email": "segu.harini25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Shukla Shivam Ranapratap",
+        "enrol": "25BSOCBL0685",
+        "email": "shivam.shukla25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Kishore Kumar K",
+        "enrol": "25BSOCBL0698",
+        "email": "kishorekumar.k25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "B Somnaath",
+        "enrol": "25BSOCBL0701",
+        "email": "b.somnaath25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Sejal Jain",
+        "enrol": "25BSOCBL0702",
+        "email": "sejal.jain25mb@ibsindia.org",
+        "seat": ""
+      },
+      {
+        "name": "Gunturi Sai Manoj Raju",
+        "enrol": "25BSOCBL0703",
+        "email": "gunturi.saimanojraju25mb@ibsindia.org",
+        "seat": ""
+      }
+    ],
+    "isIndividual": false,
+    "quarters": [],
+    "pendingPrice": null,
+    "pendingPromo": null,
+    "submitted": false
+  }
+]

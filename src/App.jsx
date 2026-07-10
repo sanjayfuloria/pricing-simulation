@@ -329,28 +329,49 @@ async function pushToSheets(url, payload) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LOGIN SCREEN — Role selection + Faculty login + Student multi-step wizard
-// ═══════════════════════════════════════════════════════════════════════════
-// Default team IDs when no Excel is uploaded
-const DEFAULT_TEAM_IDS = Array.from({length:400}, (_,i) => `Team ${i+1}`);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PRE-LOADED TEAMS — embedded student roster
+// ═══════════════════════════════════════════════════════════════════════════
+import PRELOADED_TEAMS from "./preloaded_teams.json";
+
+// Build lookup maps for fast access
+const PRELOADED_BY_NAME = {};
+const PRELOADED_SECTIONS = {};
+PRELOADED_TEAMS.forEach(t => {
+  PRELOADED_BY_NAME[t.name] = t;
+  const sec = t.section || "Other";
+  if (!PRELOADED_SECTIONS[sec]) PRELOADED_SECTIONS[sec] = [];
+  PRELOADED_SECTIONS[sec].push(t);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOGIN SCREEN — Role selection + Faculty login + Student 2-step join
+// ═══════════════════════════════════════════════════════════════════════════
 function LoginScreen({ onLogin }) {
   const [role, setRole] = useState(null);
   const [facultyPass, setFacultyPass] = useState("");
   const [error, setError] = useState("");
 
-  // Student wizard steps: "gameId" → "teamSelect" → "teamDetails"
+  // Student wizard: "gameId" → "teamSelect"
   const [studentStep, setStudentStep] = useState("gameId");
   const [gameCode, setGameCode] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [teamName, setTeamName] = useState("");
-  const [members, setMembers] = useState([{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""},{name:"",enrol:""}]);
-  // Available team IDs (populated from game data or default)
-  const [availableTeams, setAvailableTeams] = useState(DEFAULT_TEAM_IDS);
-  const [isIndividual, setIsIndividual] = useState(false);
+  const [filterSection, setFilterSection] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const updateMember = (i, f, v) => { const c=[...members]; c[i]={...c[i],[f]:v}; setMembers(c); };
+  // The team object selected by the student
+  const selectedTeam = PRELOADED_BY_NAME[selectedTeamId] || null;
+  const sections = Object.keys(PRELOADED_SECTIONS).sort();
+
+  // Filter teams for display
+  const visibleTeams = PRELOADED_TEAMS.filter(t => {
+    const matchSec = !filterSection || t.section === filterSection;
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q || t.name.toLowerCase().includes(q) ||
+      t.members.some(m => m.name.toLowerCase().includes(q) || m.enrol.toLowerCase().includes(q));
+    return matchSec && matchSearch;
+  });
 
   const handleFacultyLogin = () => {
     if (facultyPass === "ibs2026") { onLogin({ role: "faculty" }); }
@@ -361,42 +382,20 @@ function LoginScreen({ onLogin }) {
     const code = gameCode.trim().toUpperCase();
     if (code.length !== 8) { setError("Please enter a valid 8-character simulation code"); return; }
     setError("");
-    
-    // Try to fetch team list from Firebase (non-blocking)
-    try {
-      const teamsRes = await fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + code + "/teams.json?_t=" + Date.now(), { cache: "no-store" });
-      if (teamsRes.ok) {
-        const teamsData = await teamsRes.json();
-        if (teamsData) {
-          const teamNames = Object.values(teamsData).map(t => t.name || "Unknown");
-          if (teamNames.length > 0) setAvailableTeams(teamNames);
-        }
-      }
-    } catch (e) {
-      // Proceed even if Firebase is unreachable
-    }
     setStudentStep("teamSelect");
   };
 
-  const handleTeamSelect = () => {
-    if (!selectedTeamId) { setError("Please select a team or individual slot"); return; }
-    setError("");
-    setTeamName(selectedTeamId);
-    setStudentStep("teamDetails");
-  };
-
-  const handleTeamDetailsSubmit = () => {
-    if (!teamName.trim()) { setError("Team name is required"); return; }
-    if (!members[0].name.trim()) { setError("At least one member name is required"); return; }
+  const handleJoinTeam = () => {
+    if (!selectedTeam) { setError("Please select your team"); return; }
     setError("");
     onLogin({
       role: "student",
-      teamName: teamName.trim(),
-      section: "",
-      members: members.filter(m => m.name.trim()),
+      teamName: selectedTeam.name,
+      section: selectedTeam.section || "",
+      members: selectedTeam.members,
       gameCode: gameCode.trim().toUpperCase(),
-      isIndividual,
-      selectedTeamId,
+      isIndividual: selectedTeam.isIndividual || false,
+      selectedTeamId: selectedTeam.id,
     });
   };
 
@@ -459,7 +458,7 @@ function LoginScreen({ onLogin }) {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // STUDENT WIZARD — Step 1: Enter Game ID
+  // STUDENT — Step 1: Enter Game Code
   // ═══════════════════════════════════════════════════════════════════
   if (studentStep === "gameId") {
     return (
@@ -495,81 +494,92 @@ function LoginScreen({ onLogin }) {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // STUDENT WIZARD — Step 2: Select Team from dropdown
-  // ═══════════════════════════════════════════════════════════════════
-  if (studentStep === "teamSelect") {
-    return (
-      <div className="login-wrapper">
-        <div className="login-bg-pattern" />
-        <div className="login-container login-form-container">
-          <button className="back-btn" onClick={() => setStudentStep("gameId")}>← Back</button>
-          <div className="login-brand compact">
-            <div className="brand-icon small">👥</div>
-            <h2>Select Your Team</h2>
-            <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.6rem"}}>
-              <span className="gid-label">Game</span>
-              <span className="gid-value" style={{fontSize:"1.1rem"}}>{gameCode.toUpperCase()}</span>
-            </div>
-          </div>
-          <div className="login-form">
-            <div className="form-field">
-              <label>Choose your team / slot *</label>
-              <select value={selectedTeamId} onChange={e => {
-                setSelectedTeamId(e.target.value);
-                setIsIndividual(e.target.value.toLowerCase().startsWith("individual"));
-              }} style={{fontSize:"0.95rem",padding:"0.6rem 0.75rem"}}>
-                <option value="">— Select —</option>
-                {availableTeams.map((t, i) => (
-                  <option key={i} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            {error && <div className="login-error">{error}</div>}
-            <button className="login-submit student-submit" onClick={handleTeamSelect}
-              disabled={!selectedTeamId}>
-              Continue →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // STUDENT WIZARD — Step 3: Team Details (name + up to 5 members)
+  // STUDENT — Step 2: Select Team (pre-loaded, searchable)
   // ═══════════════════════════════════════════════════════════════════
   return (
     <div className="login-wrapper">
       <div className="login-bg-pattern" />
-      <div className="login-container login-form-container student-form">
-        <button className="back-btn" onClick={() => setStudentStep("teamSelect")}>← Back</button>
+      <div className="login-container login-form-container" style={{maxWidth:640}}>
+        <button className="back-btn" onClick={() => { setStudentStep("gameId"); setSelectedTeamId(""); setSearchQuery(""); setFilterSection(""); }}>← Back</button>
         <div className="login-brand compact">
-          <div className="brand-icon small">📝</div>
-          <h2>Team Details</h2>
-          <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.6rem"}}>
-            <span className="gid-label">Game {gameCode.toUpperCase()} • {selectedTeamId}</span>
+          <div className="brand-icon small">👥</div>
+          <h2>Find &amp; Join Your Team</h2>
+          <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.75rem"}}>
+            <span className="gid-label">Game Code</span>
+            <span className="gid-value" style={{fontSize:"1.1rem"}}>{gameCode.toUpperCase()}</span>
           </div>
         </div>
         <div className="login-form">
-          <div className="form-field">
-            <label>Team Name *</label>
-            <input value={teamName} onChange={e => setTeamName(e.target.value)}
-              placeholder="Give your team a creative name" autoFocus />
+          {/* Search + Section filter */}
+          <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.5rem"}}>
+            <div className="form-field" style={{flex:2,marginBottom:0}}>
+              <input value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSelectedTeamId(""); }}
+                placeholder="🔍  Search by team name, student name or enrolment..." autoFocus />
+            </div>
+            <div className="form-field" style={{flex:1,marginBottom:0}}>
+              <select value={filterSection} onChange={e => { setFilterSection(e.target.value); setSelectedTeamId(""); }}>
+                <option value="">All Sections</option>
+                {sections.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="members-section">
-            <label className="section-label">Team Members (up to 5)</label>
-            {members.map((m, i) => (
-              <div className="member-row" key={i}>
-                <span className="member-num">{i+1}</span>
-                <input placeholder={i === 0 ? "Name *" : "Name"} value={m.name} onChange={e => updateMember(i, "name", e.target.value)} />
-                <input placeholder="Enrolment #" value={m.enrol} onChange={e => updateMember(i, "enrol", e.target.value)} />
+
+          {/* Team list */}
+          <div className="preloaded-team-list">
+            {visibleTeams.length === 0 && (
+              <div style={{padding:"1rem",textAlign:"center",color:"var(--text-muted)"}}>No teams found. Try a different search.</div>
+            )}
+            {visibleTeams.map(team => {
+              const isSelected = selectedTeamId === team.name;
+              return (
+                <div key={team.id}
+                  className={`preloaded-team-row ${isSelected ? "selected" : ""}`}
+                  onClick={() => setSelectedTeamId(team.name)}>
+                  <div className="pt-left">
+                    <span className="pt-name">{team.name}</span>
+                    <span className="pt-section">{team.section}</span>
+                  </div>
+                  <div className="pt-members">
+                    {team.members.map((m,i) => (
+                      <span key={i} className="pt-member">{m.name}</span>
+                    ))}
+                  </div>
+                  {isSelected && <span className="pt-check">✓</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selected team confirmation */}
+          {selectedTeam && (
+            <div className="selected-team-confirm">
+              <div className="stc-header">
+                <span className="stc-icon">🤝</span>
+                <div>
+                  <div className="stc-name">{selectedTeam.name}</div>
+                  <div className="stc-section">{selectedTeam.section} • {selectedTeam.members.length} members</div>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="stc-members">
+                {selectedTeam.members.map((m, i) => (
+                  <div key={i} className="stc-member">
+                    <span className="stc-num">{i+1}</span>
+                    <span className="stc-mname">{m.name}</span>
+                    <span className="stc-enrol">{m.enrol}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && <div className="login-error">{error}</div>}
-          <button className="login-submit student-submit" onClick={handleTeamDetailsSubmit}>
-            Continue to Strategy →
+          <button className="login-submit student-submit" onClick={handleJoinTeam}
+            disabled={!selectedTeam} style={{marginTop:"0.75rem"}}>
+            {selectedTeam ? `Join ${selectedTeam.name} →` : "Select Your Team to Continue"}
           </button>
+          <p className="login-hint" style={{marginTop:"0.5rem"}}>
+            Can't find your team? Ask your faculty or look under a different section filter.
+          </p>
         </div>
       </div>
     </div>
