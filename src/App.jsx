@@ -353,16 +353,19 @@ function LoginScreen({ onLogin }) {
   const [facultyPass, setFacultyPass] = useState("");
   const [error, setError] = useState("");
 
-  // Student wizard: "gameId" → "teamSelect"
+  // Student wizard: "gameId" → "teamSelect" → "leadVerify"
   const [studentStep, setStudentStep] = useState("gameId");
   const [gameCode, setGameCode] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [filterSection, setFilterSection] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [verifyName, setVerifyName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // The team object selected by the student
   const selectedTeam = PRELOADED_BY_NAME[selectedTeamId] || null;
   const sections = Object.keys(PRELOADED_SECTIONS).sort();
+  const teamLead = selectedTeam ? selectedTeam.members[0] : null;
 
   // Filter teams for display
   const visibleTeams = PRELOADED_TEAMS.filter(t => {
@@ -385,8 +388,43 @@ function LoginScreen({ onLogin }) {
     setStudentStep("teamSelect");
   };
 
-  const handleJoinTeam = () => {
+  const handleTeamSelected = async () => {
     if (!selectedTeam) { setError("Please select your team"); return; }
+    setError("");
+    setIsLoading(true);
+    // Check Firebase for any faculty-assigned lead override
+    try {
+      const res = await fetch(
+        `https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/${gameCode.trim().toUpperCase()}/teamLeads/${selectedTeam.id}.json?_t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (res.ok) {
+        const override = await res.json();
+        if (override && override.leadName) {
+          // Faculty has reassigned — use the override
+          selectedTeam._leadOverride = override.leadName;
+          selectedTeam._leadEnrol = override.leadEnrol || "";
+        }
+      }
+    } catch (e) { /* proceed with default lead */ }
+    setIsLoading(false);
+    setStudentStep("leadVerify");
+  };
+
+  const handleLeadVerify = () => {
+    if (!selectedTeam) return;
+    const currentLead = selectedTeam._leadOverride
+      ? { name: selectedTeam._leadOverride, enrol: selectedTeam._leadEnrol }
+      : selectedTeam.members[0];
+    const entered = verifyName.trim().toLowerCase();
+    const leadName = (currentLead.name || "").toLowerCase();
+    const leadEnrol = (currentLead.enrol || "").toLowerCase();
+
+    if (!entered) { setError("Please enter your name or enrolment number to verify"); return; }
+    if (entered !== leadName && entered !== leadEnrol) {
+      setError(`Only the team lead (${currentLead.name}) can enter decisions. Please ask your team lead to log in, or contact faculty to reassign the lead.`);
+      return;
+    }
     setError("");
     onLogin({
       role: "student",
@@ -396,6 +434,8 @@ function LoginScreen({ onLogin }) {
       gameCode: gameCode.trim().toUpperCase(),
       isIndividual: selectedTeam.isIndividual || false,
       selectedTeamId: selectedTeam.id,
+      isTeamLead: true,
+      leadName: currentLead.name,
     });
   };
 
@@ -573,12 +613,79 @@ function LoginScreen({ onLogin }) {
           )}
 
           {error && <div className="login-error">{error}</div>}
-          <button className="login-submit student-submit" onClick={handleJoinTeam}
-            disabled={!selectedTeam} style={{marginTop:"0.75rem"}}>
-            {selectedTeam ? `Join ${selectedTeam.name} →` : "Select Your Team to Continue"}
+          <button className="login-submit student-submit" onClick={handleTeamSelected}
+            disabled={!selectedTeam || isLoading} style={{marginTop:"0.75rem"}}>
+            {isLoading ? "Checking..." : selectedTeam ? `Proceed with ${selectedTeam.name} →` : "Select Your Team to Continue"}
           </button>
           <p className="login-hint" style={{marginTop:"0.5rem"}}>
             Can't find your team? Ask your faculty or look under a different section filter.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STUDENT — Step 3: Team Lead Verification
+  // ═══════════════════════════════════════════════════════════════════
+  const currentLead = selectedTeam
+    ? (selectedTeam._leadOverride
+        ? { name: selectedTeam._leadOverride, enrol: selectedTeam._leadEnrol }
+        : selectedTeam.members[0])
+    : null;
+
+  return (
+    <div className="login-wrapper">
+      <div className="login-bg-pattern" />
+      <div className="login-container login-form-container" style={{maxWidth:520}}>
+        <button className="back-btn" onClick={() => { setStudentStep("teamSelect"); setVerifyName(""); setError(""); }}>← Back</button>
+        <div className="login-brand compact">
+          <div className="brand-icon small">🔐</div>
+          <h2>Team Lead Verification</h2>
+          <div className="game-id-display" style={{marginTop:"0.5rem",padding:"0.4rem 0.75rem"}}>
+            <span className="gid-label">{selectedTeam?.name}</span>
+            <span className="gid-value" style={{fontSize:"1rem"}}>{selectedTeam?.section}</span>
+          </div>
+        </div>
+        <div className="login-form">
+          {/* Team info */}
+          <div className="lead-verify-card">
+            <div className="lv-header">
+              <span className="lv-crown">👑</span>
+              <div>
+                <div className="lv-title">Team Lead</div>
+                <div className="lv-lead-name">{currentLead?.name}</div>
+                <div className="lv-lead-enrol">{currentLead?.enrol}</div>
+              </div>
+            </div>
+            <p className="lv-desc">
+              Only the team lead can submit pricing decisions. Other members can view but not submit.
+            </p>
+            <div className="lv-all-members">
+              <div className="lv-members-label">All team members:</div>
+              {selectedTeam?.members.map((m, i) => (
+                <div key={i} className={`lv-member-row ${i === 0 ? "lead" : ""}`}>
+                  {i === 0 ? "👑" : <span className="lv-num">{i+1}</span>}
+                  <span className="lv-mname">{m.name}</span>
+                  <span className="lv-menrol">{m.enrol}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-field" style={{marginTop:"1rem"}}>
+            <label>Confirm you are the team lead — enter your name or enrolment number *</label>
+            <input value={verifyName} onChange={e => setVerifyName(e.target.value)}
+              placeholder={`Enter: ${currentLead?.name || "team lead name"}`}
+              onKeyDown={e => e.key === "Enter" && handleLeadVerify()} autoFocus />
+          </div>
+          {error && <div className="login-error">{error}</div>}
+          <button className="login-submit student-submit" onClick={handleLeadVerify}
+            disabled={!verifyName.trim()}>
+            Enter as Team Lead →
+          </button>
+          <p className="login-hint">
+            Not the team lead? Only the team lead can submit decisions. Faculty can reassign the lead from the Faculty Portal if needed.
           </p>
         </div>
       </div>
@@ -614,6 +721,9 @@ function FacultyDashboard({ onLogout }) {
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
   const [rosterStatus, setRosterStatus] = useState(null);
+  const [teamLeads, setTeamLeads] = useState({}); // { teamId: { leadName, leadEnrol } }
+  const [changingLeadFor, setChangingLeadFor] = useState(null); // teamId being edited
+  const [newLeadIndex, setNewLeadIndex] = useState(0); // member index in team
   const fileInputRef = useRef(null);
   const attendanceInputRef = useRef(null);
   const [loadOldGameId, setLoadOldGameId] = useState("");
@@ -1375,19 +1485,84 @@ function FacultyDashboard({ onLogout }) {
         {tab === "teams" && (
           <div className="page">
             <div className="page-header">
-              <div><h1>All Teams ({gameState.teams.length})</h1><p className="page-desc">Detailed view of every registered team</p></div>
+              <div><h1>All Teams ({gameState.teams.length})</h1><p className="page-desc">View teams, team leads, and performance. Click a team lead to reassign.</p></div>
             </div>
             <div className="teams-grid">
               {gameState.teams.map(team => {
                 const totProf = team.quarters.reduce((s,q) => s+q.profit, 0);
                 const totRev = team.quarters.reduce((s,q) => s+q.revenue, 0);
+                const preloaded = PRELOADED_BY_NAME[team.name];
+                const members = preloaded ? preloaded.members : (team.members || []);
+                const overrideLead = teamLeads[team.id];
+                const currentLead = overrideLead
+                  ? { name: overrideLead.leadName, enrol: overrideLead.leadEnrol }
+                  : (members[0] || { name: "—", enrol: "" });
+                const isChanging = changingLeadFor === team.id;
                 return (
                   <div className="team-tile" key={team.id}>
                     <div className="tt-header">
                       <h3>{team.name}</h3>
-                      <span className="tt-section">{team.section}</span>
+                      <span className="tt-section">{team.section || preloaded?.section || ""}</span>
                     </div>
-                    <div className="tt-members">{team.members.filter(m => m.name).map(m => m.name).join(", ") || "—"}</div>
+
+                    {/* Team Lead */}
+                    <div className="tt-lead">
+                      <span className="tt-lead-crown">👑</span>
+                      <div className="tt-lead-info">
+                        <span className="tt-lead-label">Team Lead</span>
+                        <span className="tt-lead-name">{currentLead.name}</span>
+                        {currentLead.enrol && <span className="tt-lead-enrol">{currentLead.enrol}</span>}
+                      </div>
+                      <button className="btn-change-lead" onClick={() => {
+                        setChangingLeadFor(isChanging ? null : team.id);
+                        setNewLeadIndex(0);
+                      }}>
+                        {isChanging ? "Cancel" : "Change"}
+                      </button>
+                    </div>
+
+                    {/* Change Lead Panel */}
+                    {isChanging && (
+                      <div className="tt-change-lead-panel">
+                        <p className="tt-cl-hint">Select the new team lead:</p>
+                        {members.map((m, mi) => (
+                          <label key={mi} className="tt-cl-option">
+                            <input type="radio" name={`lead-${team.id}`} value={mi}
+                              checked={newLeadIndex === mi}
+                              onChange={() => setNewLeadIndex(mi)} />
+                            <span className="tt-cl-name">{m.name}</span>
+                            <span className="tt-cl-enrol">{m.enrol}</span>
+                            {mi === 0 && !overrideLead && <span className="tt-cl-badge">Current</span>}
+                          </label>
+                        ))}
+                        <button className="btn-push" style={{marginTop:"0.5rem",width:"100%"}}
+                          onClick={async () => {
+                            const newLead = members[newLeadIndex];
+                            const update = { leadName: newLead.name, leadEnrol: newLead.enrol || "" };
+                            setTeamLeads(prev => ({ ...prev, [team.id]: update }));
+                            setChangingLeadFor(null);
+                            // Write to Firebase so student login can read it
+                            try {
+                              await fetch(
+                                `${FIREBASE_REST}/games/${gameState.gameId}/teamLeads/${team.id}.json`,
+                                { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) }
+                              );
+                            } catch(e) { console.error("Firebase lead update error:", e); }
+                          }}>
+                          Assign {members[newLeadIndex]?.name} as Team Lead
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Members */}
+                    <div className="tt-members">
+                      {members.filter(m => m.name).map((m, i) => (
+                        <span key={i} className={`tt-member-tag ${currentLead.name === m.name ? "lead" : ""}`}>
+                          {currentLead.name === m.name && "👑 "}{m.name}
+                        </span>
+                      ))}
+                    </div>
+
                     <div className="tt-stats">
                       <div><span className="tt-label">Revenue</span><span className="tt-val">{fmt(totRev)}</span></div>
                       <div><span className="tt-label">Profit</span><span className={`tt-val ${totProf >= 0 ? "profit-pos" : "profit-neg"}`}>{fmt(totProf)}</span></div>

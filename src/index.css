@@ -1237,3 +1237,73 @@ textarea { resize: vertical; }
 }
 .stc-mname { font-weight: 600; color: var(--text); }
 .stc-enrol { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+
+/* ─── Lead Verify Screen ─────────────────────────────────── */
+.lead-verify-card {
+  background: var(--bg-alt); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem;
+}
+.lv-header {
+  display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+.lv-crown { font-size: 1.8rem; }
+.lv-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--text-muted); }
+.lv-lead-name { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.lv-lead-enrol { font-size: 0.78rem; color: var(--text-muted); font-family: monospace; }
+.lv-desc { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
+.lv-all-members { border-top: 1px solid var(--border); padding-top: 0.5rem; }
+.lv-members-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem; }
+.lv-member-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.82rem; padding: 0.2rem 0;
+}
+.lv-member-row.lead .lv-mname { font-weight: 700; color: var(--green-800); }
+.lv-num { width: 18px; text-align: center; color: var(--text-muted); font-size: 0.75rem; }
+.lv-mname { flex: 1; color: var(--text); }
+.lv-menrol { font-family: monospace; font-size: 0.72rem; color: var(--text-muted); }
+
+/* ─── Team Lead in All Teams tab ────────────────────────── */
+.tt-lead {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--green-50); border: 1px solid var(--green-200,#c6e6c6);
+  border-radius: calc(var(--radius) - 2px); padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.tt-lead-crown { font-size: 1rem; }
+.tt-lead-info { flex: 1; }
+.tt-lead-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; color: var(--text-muted); display: block; }
+.tt-lead-name { font-size: 0.82rem; font-weight: 700; color: var(--green-800); display: block; }
+.tt-lead-enrol { font-size: 0.68rem; color: var(--text-muted); font-family: monospace; }
+.btn-change-lead {
+  font-size: 0.7rem; padding: 0.2rem 0.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; color: var(--text-secondary);
+  white-space: nowrap;
+}
+.btn-change-lead:hover { border-color: var(--green-700); color: var(--green-700); }
+.tt-change-lead-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.6rem; margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+}
+.tt-cl-hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+.tt-cl-option {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.25rem 0; cursor: pointer;
+}
+.tt-cl-name { flex: 1; font-weight: 600; }
+.tt-cl-enrol { font-family: monospace; font-size: 0.72rem; color: var(--text-muted); }
+.tt-cl-badge {
+  font-size: 0.65rem; background: var(--green-100,#d4edda); color: var(--green-800);
+  padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;
+}
+.tt-member-tag {
+  display: inline-block; font-size: 0.75rem;
+  background: var(--bg-alt); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0.1rem 0.45rem;
+  margin: 0.1rem 0.15rem 0.1rem 0; color: var(--text-secondary);
+}
+.tt-member-tag.lead {
+  background: var(--green-50); border-color: var(--green-700);
+  color: var(--green-800); font-weight: 600;
+}
