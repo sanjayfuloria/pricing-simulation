@@ -799,6 +799,17 @@ function FacultyDashboard({ onLogout }) {
   });
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
+
+  // Persist Sheets URL across sessions
+  useEffect(() => {
+    const saved = localStorage.getItem("pricing-sim-sheets-url");
+    if (saved) setGameState(p => ({ ...p, sheetsUrl: saved }));
+  }, []);
+
+  const updateSheetsUrl = (url) => {
+    setGameState(p => ({ ...p, sheetsUrl: url }));
+    try { localStorage.setItem("pricing-sim-sheets-url", url); } catch(e) {}
+  };
   const [rosterStatus, setRosterStatus] = useState(null);
   const [teamLeads, setTeamLeads] = useState({}); // { teamId: { leadName, leadEnrol } }
   const [changingLeadFor, setChangingLeadFor] = useState(null); // teamId being edited
@@ -921,7 +932,6 @@ function FacultyDashboard({ onLogout }) {
         const prevData = team.quarters.length > 0 ? team.quarters[team.quarters.length - 1] : null;
         const phase = getPhase(qNum);
         const result = simulateQuarter(team.pendingPrice || INIT_PRICE, aipInput, phase, team.pendingPromo || 0, prevData);
-        // Apply late submission penalty if applicable
         const isLate = lateTeamIds[team.id] && !team.submitted;
         const penaltyFactor = isLate && latePenaltyPct > 0 ? (1 - latePenaltyPct / 100) : 1;
         const adjustedResult = isLate && latePenaltyPct > 0
@@ -939,6 +949,30 @@ function FacultyDashboard({ onLogout }) {
           gameId: prev.gameId, isFinished, timestamp: Date.now(),
         }));
       } catch(e) {}
+
+      // Auto-push to Google Sheets after every quarter (if URL is set)
+      if (prev.sheetsUrl) {
+        const scored = calcScores(updatedTeams);
+        const payload = {
+          teams: scored.map(t => ({
+            name: t.name, section: t.section, members: t.members,
+            isIndividual: t.isIndividual || false,
+            rank: t.rank, score: t.score, penalties: t.penalties, growth: t.growth,
+            totProfit: t.totProfit, totRevenue: t.totRevenue, totSales: t.totSales,
+            quarters: t.quarters.map((q, i) => ({ quarter: i + 1, ...q }))
+          })),
+          aipHistory: newAipHistory,
+          sdPenaltyEnabled: prev.sdPenaltyEnabled,
+          gameId: prev.gameId,
+          autoSync: true,
+          syncedAfterQuarter: qNum,
+          timestamp: new Date().toISOString()
+        };
+        pushToSheets(prev.sheetsUrl, payload)
+          .then(r => { if (r.ok) setPushStatus({ ok: true, message: `✓ Q${qNum} data auto-saved to Google Sheets` }); })
+          .catch(() => {});
+      }
+
       // Clear lateAllowed in Firebase and advance
       fetch(FIREBASE_REST + "/games/" + prev.gameId + "/meta.json", {
         method: "PATCH",
@@ -946,9 +980,10 @@ function FacultyDashboard({ onLogout }) {
         body: JSON.stringify({
           currentQuarter: qNum + 1, status: isFinished ? "finished" : "waiting",
           quarterStarted: false, aipHistory: newAipHistory,
-          lateAllowed: null, latePenalty: null, // reset for next quarter
+          lateAllowed: null, latePenalty: null,
         }),
       }).catch(e => console.error("Firebase processQuarter error:", e));
+
       return { ...prev, currentQuarter: qNum + 1, aipHistory: newAipHistory,
                teams: updatedTeams, status: isFinished ? "finished" : "waiting",
                quarterStarted: false };
@@ -1731,15 +1766,22 @@ function FacultyDashboard({ onLogout }) {
         {tab === "sheets" && (
           <div className="page">
             <div className="page-header">
-              <div><h1>Google Sheets Export</h1><p className="page-desc">Push all team data for grading</p></div>
+              <div>
+                <h1>Google Sheets Export</h1>
+                <p className="page-desc">
+                  {gameState.sheetsUrl
+                    ? "✅ Auto-sync enabled — data saves to Google Sheets after every quarter"
+                    : "Paste your Web App URL below to enable auto-sync after every quarter"}
+                </p>
+              </div>
             </div>
             <div className="sheets-setup">
               <div className="ss-card">
                 <h3>Web App URL</h3>
-                <p>Deploy the provided Google Apps Script and paste the URL below.</p>
+                <p>Paste the Google Apps Script Web App URL below. Once set, data will <strong>automatically save to Google Sheets after every quarter</strong> — no manual push needed.</p>
                 <div className="ss-input-row">
                   <input type="url" placeholder="https://script.google.com/macros/s/.../exec"
-                    value={gameState.sheetsUrl} onChange={e => setGameState(p => ({...p, sheetsUrl: e.target.value}))} />
+                    value={gameState.sheetsUrl} onChange={e => updateSheetsUrl(e.target.value)} />
                   <button className="btn-push" style={{background:"#7f8c8d"}} onClick={async () => {
                     setPushStatus({ ok: true, message: "Testing connection..." });
                     const testPayload = { teamName: "TEST", timestamp: new Date().toISOString(), members: [{name:"Test User"}], strategy: {}, quarters: [{ quarter: 1, phase: 1, ownPrice: 8, avgCompPrice: 10, totalSales: 50, revenue: 400, profit: 100 }], conclusions: {} };
