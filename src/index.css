@@ -1307,3 +1307,60 @@ textarea { resize: vertical; }
   background: var(--green-50); border-color: var(--green-700);
   color: var(--green-800); font-weight: 600;
 }
+
+/* ─── Timer Expired Banner ───────────────────────────────── */
+.timer-expired-banner {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  background: #fff5f5; border: 2px solid var(--red-600);
+  border-radius: var(--radius); padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.teb-icon { font-size: 1.5rem; }
+.timer-expired-banner strong { color: var(--red-600); }
+.timer-expired-banner p { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+.late-allowed-banner {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  background: #fffbea; border: 2px solid var(--amber-600);
+  border-radius: var(--radius); padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.late-allowed-banner strong { color: var(--amber-700, #b45309); }
+.late-allowed-banner p { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem; }
+.submit-btn.expired { background: var(--red-600) !important; opacity: 0.7; }
+
+/* ─── Faculty Late Submission Panel ─────────────────────── */
+.late-panel {
+  background: #fffbea; border: 2px solid var(--amber-600);
+  border-radius: var(--radius); padding: 1rem;
+  margin-bottom: 1rem;
+}
+.late-panel-header {
+  display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.75rem;
+}
+.late-panel-icon { font-size: 1.4rem; }
+.late-panel-header strong { font-size: 0.95rem; color: var(--amber-700, #b45309); display: block; }
+.late-panel-header p { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.15rem; }
+.late-penalty-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  flex-wrap: wrap; margin-bottom: 0.75rem;
+}
+.late-penalty-row label { font-size: 0.85rem; font-weight: 600; }
+.penalty-input-row { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.penalty-chip {
+  padding: 0.2rem 0.55rem; border-radius: 999px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 0.78rem; font-weight: 700; cursor: pointer; color: var(--text-secondary);
+}
+.penalty-chip.active {
+  background: var(--amber-600); color: white; border-color: var(--amber-600);
+}
+.late-teams-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.late-team-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.3rem 0; font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+.late-team-name { flex: 1; font-weight: 600; }
+.late-granted { font-size: 0.78rem; color: var(--green-700); font-weight: 600; }
+.late-status { font-size: 0.78rem; color: var(--green-700); margin-top: 0.5rem; font-style: italic; }

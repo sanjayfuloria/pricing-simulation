@@ -704,6 +704,83 @@ function generateGameId() {
   return id;
 }
 
+// ─── Late Submission Panel (Faculty) ─────────────────────────────────────────
+function LateSubmissionPanel({ gameId, teams, currentQuarter, firebaseRest }) {
+  const [latePenalty, setLatePenalty] = useState(10); // default 10% penalty
+  const [grantedTeams, setGrantedTeams] = useState({}); // teamId → true
+  const [status, setStatus] = useState("");
+
+  const unsubmitted = teams.filter(t => !t.submitted);
+
+  const grantLate = async (team) => {
+    const teamKey = team.id;
+    try {
+      await fetch(`${firebaseRest}/games/${gameId}/meta/lateAllowed/${teamKey}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(true),
+      });
+      await fetch(`${firebaseRest}/games/${gameId}/meta/latePenalty.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(latePenalty),
+      });
+      setGrantedTeams(prev => ({ ...prev, [teamKey]: true }));
+      setStatus(`Late submission granted to ${team.name} with ${latePenalty}% profit penalty.`);
+    } catch (e) {
+      setStatus("Error granting late submission. Try again.");
+    }
+  };
+
+  const grantAll = async () => {
+    for (const team of unsubmitted) await grantLate(team);
+    setStatus(`Late submission granted to all ${unsubmitted.length} pending teams with ${latePenalty}% penalty.`);
+  };
+
+  if (unsubmitted.length === 0) return null;
+
+  return (
+    <div className="late-panel">
+      <div className="late-panel-header">
+        <span className="late-panel-icon">⏰</span>
+        <div>
+          <strong>Late Submission Override</strong>
+          <p>{unsubmitted.length} team{unsubmitted.length > 1 ? "s have" : " has"} not submitted yet.</p>
+        </div>
+      </div>
+      <div className="late-penalty-row">
+        <label>Penalty for late submission:</label>
+        <div className="penalty-input-row">
+          {[5,10,15,20,25].map(p => (
+            <button key={p} className={`penalty-chip ${latePenalty === p ? "active" : ""}`}
+              onClick={() => setLatePenalty(p)}>{p}%</button>
+          ))}
+          <input type="number" min={1} max={50} value={latePenalty}
+            onChange={e => setLatePenalty(Math.min(50, Math.max(1, parseInt(e.target.value)||10)))}
+            style={{width:52,textAlign:"center"}} />
+        </div>
+      </div>
+      <div className="late-teams-list">
+        {unsubmitted.map(team => (
+          <div key={team.id} className="late-team-row">
+            <span className="late-team-name">{team.name}</span>
+            {grantedTeams[team.id]
+              ? <span className="late-granted">✓ Granted ({latePenalty}% penalty)</span>
+              : <button className="btn-push" style={{fontSize:"0.75rem",padding:"0.2rem 0.6rem"}} onClick={() => grantLate(team)}>
+                  Allow Late
+                </button>}
+          </div>
+        ))}
+      </div>
+      {unsubmitted.length > 1 && !Object.keys(grantedTeams).length && (
+        <button className="btn-push" style={{width:"100%",marginTop:"0.5rem",background:"var(--amber-600)"}}
+          onClick={grantAll}>Allow All {unsubmitted.length} Pending Teams (Late)</button>
+      )}
+      {status && <p className="late-status">{status}</p>}
+    </div>
+  );
+}
+
 function FacultyDashboard({ onLogout }) {
   // Setup wizard: "pregame" → "teams" → "playing"
   const [setupStep, setSetupStep] = useState("pregame"); // "pregame" | "teams" | "playing"
@@ -822,7 +899,19 @@ function FacultyDashboard({ onLogout }) {
   }
 
   // Faculty processes the current quarter and advances
-  function processQuarterAndAdvance() {
+  async function processQuarterAndAdvance() {
+    // Fetch late penalty setting from Firebase before processing
+    let latePenaltyPct = 0;
+    let lateTeamIds = {};
+    try {
+      const metaRes = await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json?_t=" + Date.now(), { cache: "no-store" });
+      if (metaRes.ok) {
+        const meta = await metaRes.json();
+        latePenaltyPct = meta?.latePenalty || 0;
+        lateTeamIds = meta?.lateAllowed || {};
+      }
+    } catch(e) {}
+
     setGameState(prev => {
       const qNum = prev.currentQuarter;
       const newAipHistory = [...prev.aipHistory, { quarter: qNum, aip: aipInput }];
@@ -830,30 +919,32 @@ function FacultyDashboard({ onLogout }) {
         const prevData = team.quarters.length > 0 ? team.quarters[team.quarters.length - 1] : null;
         const phase = getPhase(qNum);
         const result = simulateQuarter(team.pendingPrice || INIT_PRICE, aipInput, phase, team.pendingPromo || 0, prevData);
-        return { ...team, quarters: [...team.quarters, result], pendingPrice: null, pendingPromo: null, submitted: false };
+        // Apply late submission penalty if applicable
+        const isLate = lateTeamIds[team.id] && !team.submitted;
+        const penaltyFactor = isLate && latePenaltyPct > 0 ? (1 - latePenaltyPct / 100) : 1;
+        const adjustedResult = isLate && latePenaltyPct > 0
+          ? { ...result, profit: Math.round(result.profit * penaltyFactor), latePenaltyApplied: latePenaltyPct, adjustedProfit: Math.round(result.profit * penaltyFactor) }
+          : result;
+        return { ...team, quarters: [...team.quarters, adjustedResult], pendingPrice: null, pendingPromo: null, submitted: false };
       });
-      if (prev.sdPenaltyEnabled) {
+      if (prev.sdPenaltyEnabled && updatedTeams.length > 0) {
         updatedTeams = applySDPenalty(updatedTeams, updatedTeams[0].quarters.length - 1, true);
       }
       const isFinished = qNum >= 12;
-      // Write to localStorage so student tabs detect the processing
       try {
         localStorage.setItem("pricing-sim-" + prev.gameId, JSON.stringify({
-          type: "QUARTER_PROCESSED",
-          quarter: qNum,
-          nextQuarter: qNum + 1,
-          gameId: prev.gameId,
-          isFinished,
-          timestamp: Date.now(),
+          type: "QUARTER_PROCESSED", quarter: qNum, nextQuarter: qNum + 1,
+          gameId: prev.gameId, isFinished, timestamp: Date.now(),
         }));
       } catch(e) {}
-      // Sync to Firebase REST API
+      // Clear lateAllowed in Firebase and advance
       fetch(FIREBASE_REST + "/games/" + prev.gameId + "/meta.json", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currentQuarter: qNum + 1, status: isFinished ? "finished" : "waiting",
           quarterStarted: false, aipHistory: newAipHistory,
+          lateAllowed: null, latePenalty: null, // reset for next quarter
         }),
       }).catch(e => console.error("Firebase processQuarter error:", e));
       return { ...prev, currentQuarter: qNum + 1, aipHistory: newAipHistory,
@@ -1304,10 +1395,19 @@ function FacultyDashboard({ onLogout }) {
                       Start Quarter {gameState.currentQuarter} — Begin Timer for Students
                     </button>
                   ) : (
-                    <button className="advance-btn" onClick={processQuarterAndAdvance}>
-                      <Icon d={Icons.check} size={20} />
-                      Process Quarter {gameState.currentQuarter} & Advance
-                    </button>
+                    <>
+                      {/* Late Submission Controls — shown after quarter is started */}
+                      <LateSubmissionPanel
+                        gameId={gameState.gameId}
+                        teams={gameState.teams}
+                        currentQuarter={gameState.currentQuarter}
+                        firebaseRest={FIREBASE_REST}
+                      />
+                      <button className="advance-btn" onClick={processQuarterAndAdvance}>
+                        <Icon d={Icons.check} size={20} />
+                        Process Quarter {gameState.currentQuarter} & Advance
+                      </button>
+                    </>
                   )}
                 </div>
               </>
@@ -1780,18 +1880,26 @@ function StudentDashboard({ session, onLogout }) {
   };
 
   const startTimerRef = useRef(null);
+  const [timerExpired, setTimerExpired] = useState(false); // true when timer hits 0 without submission
+  const [lateSubmitAllowed, setLateSubmitAllowed] = useState(false); // faculty grants extension
+  const [isLateSubmission, setIsLateSubmission] = useState(false); // this submission was late
+
   const startTimer = useCallback(() => {
     const duration = getTimerDuration(currentQuarter);
     setTimerSeconds(duration);
     setTimerRunning(true);
     setQuarterReady(true);
     setSubmitted(false);
+    setTimerExpired(false);
+    setLateSubmitAllowed(false);
+    setIsLateSubmission(false);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimerSeconds(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
           setTimerRunning(false);
+          setTimerExpired(true); // AUTO-LOCK when timer hits 0
           return 0;
         }
         return prev - 1;
@@ -1836,6 +1944,14 @@ function StudentDashboard({ session, onLogout }) {
             if (meta.aipInput != null) setAip(meta.aipInput);
             if (startTimerRef.current) startTimerRef.current();
             return;
+          }
+          // Faculty granted late submission for this team
+          if (meta && meta.lateAllowed) {
+            const teamKey = session.selectedTeamId;
+            if (meta.lateAllowed[teamKey] && !submittedRef.current) {
+              setLateSubmitAllowed(true);
+              setIsLateSubmission(true);
+            }
           }
         }
       } catch (e) {}
@@ -1901,6 +2017,7 @@ function StudentDashboard({ session, onLogout }) {
       ...simulateQuarter(currentInput.price, aip, phase, Math.min(currentInput.promo, maxPromo), prevData),
       observations: quarterComments.observations,
       nextStrategy: quarterComments.nextStrategy,
+      lateSubmission: isLateSubmission, // flag for faculty/scoring
     };
     setQuarters(prev => [...prev, result]);
     setSubmitted(true);
@@ -1911,19 +2028,19 @@ function StudentDashboard({ session, onLogout }) {
       fetch("https://pricing-simulation-4ceee-default-rtdb.firebaseio.com/games/" + session.gameCode + "/teams/" + teamKey + ".json", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pendingPrice: currentInput.price, pendingPromo: currentInput.promo || 0, submitted: true }),
+        body: JSON.stringify({ pendingPrice: currentInput.price, pendingPromo: currentInput.promo || 0, submitted: true, lateSubmission: isLateSubmission }),
       }).catch(e => console.error("Firebase submit error:", e));
     }
     if (timerRef.current) clearInterval(timerRef.current);
     setTimerRunning(false);
     setTimerSeconds(0);
-    // DO NOT auto-start timer or auto-unlock. Student must wait for faculty.
+    setTimerExpired(false);
+    setLateSubmitAllowed(false);
     setTimeout(() => {
       setSubmitted(false);
       setCurrentInput({ price: currentInput.price, promo: 0 });
       setQuarterComments({ observations: "", nextStrategy: "" });
-      // quarterReady stays FALSE — only startTimer() sets it to true
-      // Faculty must trigger the next round (for now, a "Start Next Quarter" button)
+      setIsLateSubmission(false);
     }, 1500);
   };
 
@@ -2052,17 +2169,42 @@ function StudentDashboard({ session, onLogout }) {
             {currentQuarter <= 12 ? (
               <>
                 {/* TIMER BAR */}
-                <div className="timer-bar" style={{borderColor: timerColor}}>
+                <div className="timer-bar" style={{borderColor: timerExpired ? "var(--red-600)" : timerColor}}>
                   <div className="timer-progress" style={{width: `${timerPct}%`, background: timerColor}} />
                   <div className="timer-content">
                     <span className="timer-label">
-                      {timerRunning ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round") : (quarterReady ? "Timer ended" : "Waiting for faculty to process...")}
+                      {timerRunning
+                        ? (currentQuarter % 4 === 1 || currentQuarter === 1 ? "First quarter of phase — 6 min" : "3 min round")
+                        : timerExpired && !submitted
+                          ? lateSubmitAllowed ? "⚠️ Late submission allowed by faculty (penalty applies)" : "🔒 Time's up — submission locked"
+                          : quarterReady ? "Timer ended" : "Waiting for faculty..."}
                     </span>
-                    <span className="timer-display" style={{color: timerColor}}>
-                      {timerRunning ? formatTimer(timerSeconds) : (quarterReady ? "0:00" : "⏳")}
+                    <span className="timer-display" style={{color: timerExpired ? "var(--red-600)" : timerColor}}>
+                      {timerRunning ? formatTimer(timerSeconds) : timerExpired ? "0:00" : quarterReady ? "0:00" : "⏳"}
                     </span>
                   </div>
                 </div>
+
+                {/* TIMER EXPIRED BANNER */}
+                {timerExpired && !submitted && !lateSubmitAllowed && (
+                  <div className="timer-expired-banner">
+                    <span className="teb-icon">🔒</span>
+                    <div>
+                      <strong>Time's up — submissions are locked.</strong>
+                      <p>Your faculty can grant a late submission from the Game Control screen. A penalty will apply.</p>
+                    </div>
+                  </div>
+                )}
+
+                {lateSubmitAllowed && !submitted && (
+                  <div className="late-allowed-banner">
+                    <span>⚠️</span>
+                    <div>
+                      <strong>Late submission granted by faculty.</strong>
+                      <p>A penalty will be applied to your score for this quarter. Submit as soon as possible.</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="play-grid">
                   <div className="play-input-card">
@@ -2082,10 +2224,13 @@ function StudentDashboard({ session, onLogout }) {
                         <div className="promo-inline"><span>₹</span><input type="number" value={currentInput.promo} min={0} max={maxPromo} onChange={e => setCurrentInput(p => ({...p, promo: Math.min(+e.target.value, maxPromo)}))} /></div>
                       </div>
                     )}
-                    <button className={`submit-btn ${submitted ? "submitted" : ""} ${!quarterReady ? "locked" : ""} ${(!commentsValid && quarterReady && !submitted) ? "needs-comments" : ""}`}
-                      onClick={submitQuarter} disabled={submitted || !quarterReady}>
+                    <button className={`submit-btn ${submitted ? "submitted" : ""} ${(!quarterReady && !lateSubmitAllowed) ? "locked" : ""} ${timerExpired && !lateSubmitAllowed ? "locked expired" : ""} ${(!commentsValid && (quarterReady || lateSubmitAllowed) && !submitted) ? "needs-comments" : ""}`}
+                      onClick={submitQuarter}
+                      disabled={submitted || (!quarterReady && !lateSubmitAllowed) || (timerExpired && !lateSubmitAllowed)}>
                       {submitted ? <><Icon d={Icons.check} size={18} /> Submitted!</>
+                        : timerExpired && !lateSubmitAllowed ? <><Icon d={Icons.lock} size={18} /> Locked — Time Expired</>
                         : !quarterReady ? <><Icon d={Icons.lock} size={18} /> Waiting for Faculty...</>
+                        : lateSubmitAllowed ? <><Icon d={Icons.send} size={18} /> Submit Late (Penalty Applies)</>
                         : <><Icon d={Icons.send} size={18} /> Submit Quarter {currentQuarter}</>}
                     </button>
                     {commentError && <div className="comment-error">{commentError}</div>}
