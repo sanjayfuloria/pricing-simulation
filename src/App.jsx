@@ -781,6 +781,8 @@ function LateSubmissionPanel({ gameId, teams, currentQuarter, firebaseRest }) {
   );
 }
 
+const FIREBASE_REST_BASE = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
+
 function FacultyDashboard({ onLogout }) {
   // Setup wizard: "pregame" → "teams" → "playing"
   const [setupStep, setSetupStep] = useState("pregame"); // "pregame" | "teams" | "playing"
@@ -1008,6 +1010,30 @@ function FacultyDashboard({ onLogout }) {
   // STEP 1: PRE-GAME SETUP — Generate code or load old game
   // ═══════════════════════════════════════════════════════════════════
   if (setupStep === "pregame") {
+    const quickStart = async () => {
+      // Load all 48 pre-loaded teams directly and skip team setup wizard
+      const teams = PRELOADED_TEAMS.map(t => ({
+        ...t,
+        quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
+      }));
+      setGameState(p => ({ ...p, currentQuarter: 1, status: "waiting", quarterStarted: false, teams }));
+      setSetupStep("playing"); setTab("control");
+      // Write game to Firebase
+      try {
+        await fetch(`${FIREBASE_REST_BASE}/games/${gameState.gameId}/meta.json`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "waiting", currentQuarter: 1, quarterStarted: false,
+            sdPenaltyEnabled: gameState.sdPenaltyEnabled, aipHistory: [], aipInput: 10,
+            createdAt: new Date().toISOString() }),
+        });
+        const teamsObj = {};
+        teams.forEach(t => { teamsObj[t.id] = { name: t.name, section: t.section || "", members: t.members || [], isIndividual: false }; });
+        await fetch(`${FIREBASE_REST_BASE}/games/${gameState.gameId}/teams.json`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(teamsObj),
+        });
+      } catch(e) { console.error("Firebase quick start error:", e); }
+    };
+
     return (
       <div className="login-wrapper">
         <div className="login-bg-pattern" />
@@ -1020,10 +1046,12 @@ function FacultyDashboard({ onLogout }) {
             </p>
           </div>
           <div className="login-form">
-            <div className="setup-option-card">
-              <h3>🆕 Start a New Game</h3>
+
+            {/* ── QUICK START (primary action) ── */}
+            <div className="setup-option-card" style={{borderColor:"var(--green-700)",borderWidth:2,background:"var(--green-50)"}}>
+              <h3 style={{color:"var(--green-800)"}}>⚡ Quick Start — Teams Already Loaded</h3>
               <p style={{fontSize:"0.88rem",color:"var(--text-secondary)",marginBottom:"0.75rem"}}>
-                A unique 8-character code will be generated. Share this with students to join.
+                All 48 teams ({PRELOADED_TEAMS.length} students) are pre-loaded. Skip team setup and go straight to the control panel.
               </p>
               <div className="game-id-display">
                 <span className="gid-label">Game Code</span>
@@ -1033,31 +1061,38 @@ function FacultyDashboard({ onLogout }) {
                   Regenerate Code
                 </button>
               </div>
-              <div className="qr-section">
-                <QRCode text={typeof window !== "undefined" ? window.location.origin : "https://pricing-simulation-new.vercel.app"} size={180} />
+              <div className="qr-section" style={{marginTop:"0.75rem"}}>
+                <QRCode text={typeof window !== "undefined" ? window.location.origin : "https://pricing-simulation-new.vercel.app"} size={160} />
                 <div className="qr-info">
                   <span className="qr-label">Scan to Join</span>
                   <span className="qr-url">{typeof window !== "undefined" ? window.location.origin : "pricing-simulation-new.vercel.app"}</span>
-                  <p className="qr-hint">Students scan this QR code to open the simulation, then enter the game code above.</p>
+                  <p className="qr-hint">Students scan this QR code, then enter the Game Code above.</p>
                 </div>
               </div>
-              <div className="settings-toggles" style={{marginTop:"1rem"}}>
+              <div className="settings-toggles" style={{marginTop:"0.75rem"}}>
                 <label className="toggle-row">
                   <input type="checkbox" checked={gameState.sdPenaltyEnabled}
                     onChange={e => setGameState(p => ({...p, sdPenaltyEnabled: e.target.checked}))} />
-                  <span>Enable SD Penalty (penalise outlier prices)</span>
-                </label>
-                <label className="toggle-row">
-                  <input type="checkbox" checked={gameState.allowIndividualPlay}
-                    onChange={e => setGameState(p => ({...p, allowIndividualPlay: e.target.checked}))} />
-                  <span>Allow Individual Play</span>
+                  <span>Enable SD Penalty</span>
                 </label>
               </div>
-              <button className="login-submit faculty-submit" style={{marginTop:"1rem"}} onClick={() => setSetupStep("teams")}>
-                Set Up Teams →
+              <button className="login-submit faculty-submit" style={{marginTop:"0.75rem",background:"var(--green-700)"}} onClick={quickStart}>
+                ⚡ Enter Control Panel →
               </button>
             </div>
 
+            {/* ── MANUAL TEAM SETUP ── */}
+            <div className="setup-option-card">
+              <h3>🔧 Manual Team Setup</h3>
+              <p style={{fontSize:"0.88rem",color:"var(--text-secondary)"}}>
+                Upload a new roster, re-assign teams, or customise before starting.
+              </p>
+              <button className="btn-push" style={{marginTop:"0.5rem",width:"100%"}} onClick={() => setSetupStep("teams")}>
+                Go to Team Setup →
+              </button>
+            </div>
+
+            {/* ── ANALYSE OLDER GAME ── */}
             <div className="setup-option-card" style={{borderColor:"var(--border)",background:"var(--bg-alt)"}}>
               <h3>📊 Analyse an Older Game</h3>
               <p style={{fontSize:"0.88rem",color:"var(--text-secondary)",marginBottom:"0.5rem"}}>
@@ -1067,7 +1102,7 @@ function FacultyDashboard({ onLogout }) {
                 <input value={loadOldGameId} onChange={e => setLoadOldGameId(e.target.value.toUpperCase())}
                   placeholder="e.g. A7BF3X2K" maxLength={8} style={{flex:1,fontFamily:"'Courier New',monospace",letterSpacing:"0.1em",textTransform:"uppercase"}} />
                 <button type="button" className="btn-push" disabled={loadOldGameId.length < 8}
-                  onClick={() => { setGameState(p => ({...p, gameId: loadOldGameId, teams: generateDemoTeams()})); setSetupStep("playing"); setTab("analytics"); }}>
+                  onClick={() => { setGameState(p => ({...p, gameId: loadOldGameId, teams: PRELOADED_TEAMS.map(t=>({...t,quarters:[],pendingPrice:null,pendingPromo:null,submitted:false}))})); setSetupStep("playing"); setTab("analytics"); }}>
                   Load
                 </button>
               </div>
@@ -1227,7 +1262,7 @@ function FacultyDashboard({ onLogout }) {
                 setGameState(p => ({...p, currentQuarter: 1, status: "waiting", quarterStarted: false, teams: resetTeams}));
                 setSetupStep("playing"); setTab("control");
                 // Write game to Firebase REST API
-                const FIREBASE_REST = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
+                const FIREBASE_REST = FIREBASE_REST_BASE;
                 try {
                   await fetch(FIREBASE_REST + "/games/" + gameState.gameId + "/meta.json", {
                     method: "PUT",
