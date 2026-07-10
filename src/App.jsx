@@ -113,13 +113,14 @@ function parseRosterExcel(file) {
         const wb = XLSX.read(e.target.result, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        // Expect columns: StudentName (or Name), TeamName (or Team), Seat, Enrolment (or EnrolmentNumber or Roll)
         const roster = rows.map(r => ({
-          name: r.StudentName || r.Name || r.name || r.Student || r["Student Name"] || "",
-          team: r.TeamName || r.Team || r.team || r["Team Name"] || "",
-          seat: r.Seat || r.seat || r.SeatNo || "",
-          enrol: r.Enrolment || r.enrol || r.EnrolmentNumber || r.Roll || r["Enrolment Number"] || r["Roll Number"] || "",
-        })).filter(r => r.name.trim());
+          name: (r["Student Name"] || r.StudentName || r.Name || r.name || r.Student || "").toString().trim(),
+          team: (r["Team Name"] || r.TeamName || r.Team || r.team || "").toString().trim(),
+          seat: (r.Seat || r.seat || r.SeatNo || "").toString().trim(),
+          enrol: (r["Enrollment Number"] || r.Enrolno || r.Enrolment || r.enrol || r.EnrolmentNumber || r.Roll || r["Enrolment Number"] || r["Roll Number"] || "").toString().trim(),
+          email: (r["Email"] || r["Email ID"] || r["Inst. EMail"] || r.email || "").toString().trim(),
+          section: (r["Section"] || r.section || "").toString().trim(),
+        })).filter(r => r.name);
         resolve(roster);
       } catch (err) { reject(err); }
     };
@@ -136,22 +137,23 @@ function rosterToTeams(roster, allowIndividual = false) {
     if (!teamName || (allowIndividual && teamName.toLowerCase() === "individual")) {
       individuals.push(r);
     } else {
-      if (!teamMap[teamName]) teamMap[teamName] = [];
-      teamMap[teamName].push(r);
+      if (!teamMap[teamName]) teamMap[teamName] = { members: [], section: r.section || "" };
+      teamMap[teamName].members.push(r);
+      if (r.section) teamMap[teamName].section = r.section;
     }
   });
   let id = 0;
-  const teams = Object.entries(teamMap).map(([name, members]) => ({
-    id: `team-${id++}`, name, section: "",
-    members: members.map(m => ({ name: m.name, seat: m.seat, enrol: m.enrol })),
+  const teams = Object.entries(teamMap).map(([name, data]) => ({
+    id: `team-${id++}`, name,
+    section: data.section || "",
+    members: data.members.map(m => ({ name: m.name, seat: m.seat, enrol: m.enrol, email: m.email || "" })),
     quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
     isIndividual: false,
   }));
-  // Add individual players as solo "teams"
   individuals.forEach(r => {
     teams.push({
-      id: `ind-${id++}`, name: r.name, section: "",
-      members: [{ name: r.name, seat: r.seat, enrol: r.enrol }],
+      id: `ind-${id++}`, name: r.name, section: r.section || "",
+      members: [{ name: r.name, seat: r.seat, enrol: r.enrol, email: r.email || "" }],
       quarters: [], pendingPrice: null, pendingPromo: null, submitted: false,
       isIndividual: true,
     });
@@ -997,7 +999,8 @@ function FacultyDashboard({ onLogout }) {
                     <div className="rp-row" key={t.id}>
                       <span className="rp-rank">{i+1}</span>
                       <span className="rp-name">{t.name}</span>
-                      <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `Team (${t.members.length})`}</span>
+                      <span className={`rp-type ${t.isIndividual ? "ind" : "team"}`}>{t.isIndividual ? "Individual" : `${t.members.length} members`}</span>
+                      {t.section && <span className="rp-type team" style={{background:"var(--bg-alt)",color:"var(--text-secondary)"}}>{t.section}</span>}
                       <span className="rp-members">{t.members.map(m => m.name).filter(Boolean).join(", ")}</span>
                     </div>
                   ))}
