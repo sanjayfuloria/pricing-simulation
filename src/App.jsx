@@ -782,6 +782,7 @@ function LateSubmissionPanel({ gameId, teams, currentQuarter, firebaseRest }) {
 }
 
 const FIREBASE_REST_BASE = "https://pricing-simulation-4ceee-default-rtdb.firebaseio.com";
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzEoynPN3h0RnYgu-2Ge98lHU-ndq4Qg7gCIqNGNBvVc0nzJI6Yu69cc2ORZVrSIcxiPw/exec";
 
 function FacultyDashboard({ onLogout }) {
   // Setup wizard: "pregame" → "teams" → "playing"
@@ -789,10 +790,10 @@ function FacultyDashboard({ onLogout }) {
   const [tab, setTab] = useState("control");
   const [gameState, setGameState] = useState({
     currentQuarter: 0,
-    status: "setup", // "setup" | "active" | "waiting" | "finished"
+    status: "setup",
     aipHistory: [],
     teams: [],
-    sheetsUrl: "",
+    sheetsUrl: SHEETS_URL,
     gameId: generateGameId(),
     sdPenaltyEnabled: true, allowIndividualPlay: true,
     quarterStarted: false,
@@ -800,10 +801,14 @@ function FacultyDashboard({ onLogout }) {
   const [aipInput, setAipInput] = useState(INIT_PRICE);
   const [pushStatus, setPushStatus] = useState(null);
 
-  // Persist Sheets URL across sessions
+  // Persist Sheets URL across sessions — localStorage overrides default if set
   useEffect(() => {
     const saved = localStorage.getItem("pricing-sim-sheets-url");
     if (saved) setGameState(p => ({ ...p, sheetsUrl: saved }));
+    else {
+      // First time — save the default URL to localStorage
+      try { localStorage.setItem("pricing-sim-sheets-url", SHEETS_URL); } catch(e) {}
+    }
   }, []);
 
   const updateSheetsUrl = (url) => {
@@ -1507,6 +1512,7 @@ function FacultyDashboard({ onLogout }) {
                       currentQuarter: 0, status: "setup", aipHistory: [], teams: [],
                       sheetsUrl: "", gameId: generateGameId(),
                       sdPenaltyEnabled: true, allowIndividualPlay: true, quarterStarted: false,
+                      sheetsUrl: SHEETS_URL,
                     });
                     setAipInput(INIT_PRICE);
                   }
